@@ -1,47 +1,51 @@
 // app/api/chat/route.ts
 import { streamText } from 'ai';
-// Import the correct provider based on your choice
-import { openai } from '@ai-sdk/openai'; // If using OpenAI
-import { google } from '@ai-sdk/google'; // If using Google Gemini
+// ONLY import google, comment out or remove openai
+import { google } from '@ai-sdk/google';
 
-// Allow streaming to the client
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
+    console.log('API Route: Request received.');
     const { messages } = await req.json();
+    console.log('API Route: Messages parsed:', messages);
 
-    // Determine which model to use based on your setup
-    let model;
-    if (process.env.OPENAI_API_KEY) {
-      model = openai('gpt-4o'); // Or 'gpt-3.5-turbo' for cheaper option
-    } else if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      model = google('models/gemini-pro'); // Use gemini-pro for general chat
-    } else {
-      return new Response('No AI API key found. Please set OPENAI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY.', { status: 500 });
+    // Directly use Google model, remove the if/else if block for simplicity
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+        console.error('API Route: GOOGLE_GENERATIVE_AI_API_KEY not found.');
+        return new Response('Google API key not found. Please set GOOGLE_GENERATIVE_AI_API_KEY.', { status: 500 });
     }
+    const model = google('models/gemini-1.5-flash'); // Use 'models/gemini-pro' for good quality text chat
+    console.log('API Route: Using Google Gemini model.');
 
-    // System message to guide the AI for a travel app context
+
     const systemMessage = {
       role: 'system',
-      content: 'You are an AI-powered travel assistant. Provide helpful, concise, and inspiring travel advice, suggestions, and information. Encourage travel and exploration. If asked about booking, suggest looking up real-time services on dedicated booking sites.',
+      content: `You are an AI-powered travel assistant specializing in itinerary creation.
+      Provide helpful, concise, and inspiring travel advice, suggestions, and information.
+      When asked to create an itinerary or plan a trip, generate a response structured with daily breakdowns.
+      For each day, suggest activities, sights, and perhaps food recommendations.
+      Use clear headings for days (e.g., "Day 1: Arrival and City Exploration").
+      Keep responses engaging and easy to read.
+      If asked about booking, always suggest looking up real-time services on dedicated booking sites.`,
     };
 
+    console.log('API Route: Calling streamText...');
     const result = await streamText({
       model: model,
-      // Prepend the system message to guide the AI's behavior
       messages: [systemMessage, ...messages],
-      temperature: 0.7, // Adjust for creativity (higher = more creative)
-      maxTokens: 500, // Limit response length to control costs and conciseness
+      temperature: 0.7,
+      maxTokens: 500,
     });
+    console.log('API Route: streamText call completed. Returning response.');
 
     return result.toDataStreamResponse();
   } catch (error) {
-    console.error('API Error:', error);
-    // Provide a more detailed error message in development
+    console.error('API Route: Caught an error during request processing:', error);
+    // This will now provide a more useful error to the client if something genuinely throws
     if (process.env.NODE_ENV === 'development') {
-      const errorMessage = (error && typeof error === 'object' && 'message' in error) ? (error as { message: string }).message : 'Unknown error';
-      return new Response(`Error processing request: ${errorMessage}`, { status: 500 });
+      return new Response(`Error processing request: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
     }
     return new Response('Internal Server Error', { status: 500 });
   }

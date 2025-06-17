@@ -1,12 +1,32 @@
 // app/page.tsx
-'use client'; // This directive makes this a Client Component
+'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
+import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm'; // For GitHub Flavored Markdown (tables, task lists)
+import remarkGfm from 'remark-gfm';
 
 export default function ChatPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat();
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setInput } = useChat(); // Add setInput
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Suggested starter prompts
+  const starterPrompts = [
+    "Suggest a budget-friendly destination for a solo traveler.",
+    "What are the must-see sights in Paris?",
+    "Tell me about local food in Thailand.",
+    "How do I find cheap flights and hotels?",
+    "What should I pack for a beach vacation?",
+  ];
+
+  // Handler for clicking a starter prompt button
+  const handlePromptClick = (prompt: string) => {
+    setInput(prompt); // Set the input field to the clicked prompt
+  };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
@@ -16,10 +36,21 @@ export default function ChatPage() {
       </header>
 
       {/* Chat Messages Area */}
-      <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20"> {/* pb-20 to ensure space for input */}
+      <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
         {messages.length === 0 && !isLoading && (
-          <div className="text-center text-gray-500 mt-10">
-            Start by asking me about your next adventure!
+          <div className="text-center text-gray-700 mt-10">
+            <p className="text-xl mb-4">Start by asking me about your next adventure!</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {starterPrompts.map((prompt, index) => (
+                <button
+                  key={index}
+                  onClick={() => handlePromptClick(prompt)}
+                  className="px-4 py-2 bg-white text-blue-600 rounded-full border border-blue-300 hover:bg-blue-50 hover:border-blue-400 transition-colors duration-200"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -36,7 +67,6 @@ export default function ChatPage() {
               }`}
             >
               <strong className="capitalize">{m.role}: </strong>
-              {/* Render markdown content */}
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {m.content}
               </ReactMarkdown>
@@ -59,6 +89,8 @@ export default function ChatPage() {
             </div>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </main>
 
       {/* Input Form */}
@@ -73,7 +105,7 @@ export default function ChatPage() {
         <button
           type="submit"
           className="px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-          disabled={isLoading || !input.trim()} // Disable if loading or input is empty
+          disabled={isLoading || !input.trim()}
         >
           Send
         </button>
