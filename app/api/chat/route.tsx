@@ -634,241 +634,8 @@ export async function POST(req: Request) {
 
 
 
-
-// app/api/chat/route.ts
-// app/api/chat/route.ts
-import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
-import * as z from 'zod';
-
-export const dynamic = 'force-dynamic';
-
-async function getTimeForCity(cityName: string): Promise<string> {
-    const apiKey = process.env.TIMEZONE_API_KEY;
-
-    if (!apiKey) {
-        console.error("getTimeForCity: TIMEZONE_API_KEY not configured.");
-        return "Error: Time Zone API key not configured on the server. Cannot get city time.";
-    }
-
-    try {
-        const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cityName)}&key=${apiKey}`;
-        console.log(`[Tool] Calling Google Geocoding API for city: ${cityName}`);
-        const geocodingResponse = await fetch(geocodingUrl);
-        const geocodingData = await geocodingResponse.json();
-
-        if (!geocodingResponse.ok || geocodingData.status !== 'OK') {
-            const errorDetail = geocodingData.error_message || geocodingData.status;
-            console.error(`Geocoding failed for ${cityName}: ${errorDetail}`);
-            if (geocodingData.status === 'REQUEST_DENIED') {
-                return `Sorry, I couldn't access location services for "${cityName}". There might be an issue with the API key or its permissions.`;
-            }
-            return `Sorry, I couldn't find a precise location for "${cityName}". Please try a more specific or common city name.`;
-        }
-        if (geocodingData.results.length === 0) {
-            return `Sorry, I couldn't find a location for "${cityName}". It might be too obscure or spelled incorrectly.`;
-        }
-
-        const { lat, lng } = geocodingData.results[0].geometry.location;
-        console.log(`[Tool] Geocoded ${cityName} to Lat: ${lat}, Lng: ${lng}`);
-
-        const timestamp = Math.floor(Date.now() / 1000);
-        const timezoneUrl = `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${timestamp}&key=${apiKey}`;
-        console.log(`[Tool] Calling Google Time Zone API for Lat: ${lat}, Lng: ${lng}`);
-        const timezoneResponse = await fetch(timezoneUrl);
-        const timezoneData = await timezoneResponse.json();
-
-        if (!timezoneResponse.ok || timezoneData.status !== 'OK') {
-            const errorDetail = timezoneData.error_message || timezoneData.status;
-            console.error(`Time Zone API failed for ${cityName}: ${errorDetail}`);
-            if (timezoneData.status === 'REQUEST_DENIED') {
-                return `Sorry, I couldn't access time zone services for "${cityName}". There might be an issue with the API key or its permissions.`;
-            }
-            return `Sorry, I couldn't determine the time zone for "${cityName}".`;
-        }
-
-        const timeZoneId = timezoneData.timeZoneId;
-        console.log(`[Tool] Time Zone ID for ${cityName}: ${timeZoneId}`);
-
-        const options: Intl.DateTimeFormatOptions = {
-            hour: 'numeric',
-            minute: 'numeric',
-            hour12: true,
-            timeZone: timeZoneId,
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-        };
-        const now = new Date();
-        const localTime = new Intl.DateTimeFormat('en-US', options).format(now);
-        return `The current local time in ${cityName} is ${localTime}.`;
-
-    } catch (error) {
-        console.error(`Error in getTimeForCity for ${cityName}:`, error);
-        return `There was an unexpected error trying to get the time for ${cityName}.`;
-    }
-}
-
-async function getWeatherForCity(cityName: string): Promise<string> {
-    const googleMapsApiKey = process.env.TIMEZONE_API_KEY; // Reusing for Geocoding
-    const openWeatherMapApiKey = process.env.OPENWEATHERMAP_API_KEY;
-
-    if (!googleMapsApiKey) {
-        return "Error: Google Maps API key not configured for location services. Cannot get weather.";
-    }
-    if (!openWeatherMapApiKey) {
-        return "Error: OpenWeatherMap API key not configured. Cannot get weather.";
-    }
-
-    try {
-        console.log(`[Tool] Calling Google Geocoding API for weather for city: ${cityName}`);
-        const geocodingResponse = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cityName)}&key=${googleMapsApiKey}`
-        );
-        const geocodingData = await geocodingResponse.json();
-
-        if (!geocodingResponse.ok || geocodingData.status !== 'OK' || geocodingData.results.length === 0) {
-            const errorDetail = geocodingData.error_message || geocodingData.status;
-            console.error(`Geocoding failed for weather in ${cityName}: ${errorDetail}`);
-            if (geocodingData.status === 'REQUEST_DENIED') {
-                return `Sorry, I couldn't access location services to find "${cityName}'s" weather. There might be an issue with the Google Maps API key or its permissions.`;
-            }
-            return `Sorry, I couldn't find "${cityName}" to get its weather. Please try a more specific or common city name.`;
-        }
-
-        const { lat, lng } = geocodingData.results[0].geometry.location;
-        console.log(`[Tool] Geocoded ${cityName} for weather to Lat: ${lat}, Lng: ${lng}`);
-
-        console.log(`[Tool] Calling OpenWeatherMap API for Lat: ${lat}, Lng: ${lng}`);
-        const weatherResponse = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=imperial&appid=${openWeatherMapApiKey}`
-        );
-
-        if (!weatherResponse.ok) {
-            console.error(`OpenWeatherMap API error for ${cityName}: ${weatherResponse.status} ${weatherResponse.statusText}`);
-            const errorBody = await weatherResponse.text();
-            try {
-                const errorJson = JSON.parse(errorBody);
-                return `Sorry, there was an issue getting weather for "${cityName}". (Details: ${errorJson.message || weatherResponse.statusText})`;
-            } catch {
-                return `Sorry, there was an issue getting weather for "${cityName}". (Status: ${weatherResponse.status} ${weatherResponse.statusText})`;
-            }
-        }
-
-        const weatherData = await weatherResponse.json();
-        console.log(`[Tool] Weather Data for ${cityName}:`, weatherData);
-
-        const temperature = Math.round(weatherData.main.temp);
-        const feelsLike = Math.round(weatherData.main.feels_like);
-        const description = weatherData.weather[0].description;
-        const humidity = weatherData.main.humidity;
-        const windSpeed = Math.round(weatherData.wind.speed);
-
-        return `The weather in ${cityName} is currently ${description} with a temperature of ${temperature}°F (feels like ${feelsLike}°F). Humidity is ${humidity}% and wind speed is ${windSpeed} mph.`;
-
-    } catch (error) {
-        console.error(`Error in getWeatherForCity for ${cityName}:`, error);
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-            return `There was a network issue trying to connect to the weather service. Please check your internet connection or try again later.`;
-        }
-        return `There was an unexpected error trying to get the weather for ${cityName}.`;
-    }
-}
-
-// ---- DEFINE TOOLS HERE, BEFORE POST FUNCTION ----
-
-const getTimeForCityTool = {
-    name: 'getTimeForCity',
-    description: 'Get the current local time for a specified global city. Use this when the user asks about the current time in a city.',
-    parameters: z.object({
-        city: z.string().describe('The name of the city, e.g., "Tokyo", "London", "New York".'),
-    }),
-    execute: async ({ city }: { city: string }) => {
-        console.log(`[Tool Call] getTimeForCity for city: ${city}`);
-        const time = await getTimeForCity(city);
-        console.log(`[Tool Output] ${time}`);
-        return time;
-    },
-};
-
-const getWeatherForCityTool = {
-    name: 'getWeatherForCity',
-    description: 'Get the current weather conditions for a specified global city. Use this when the user asks about the weather or temperature in a city.',
-    parameters: z.object({
-        city: z.string().describe('The name of the city, e.g., "Tokyo", "London", "New York".'),
-    }),
-    execute: async ({ city }: { city: string }) => {
-        console.log(`[Tool Call] getWeatherForCity for city: ${city}`);
-        const weather = await getWeatherForCity(city);
-        console.log(`[Tool Output] ${weather}`);
-        return weather;
-    },
-};
-
-// --- Your existing POST function ---
-export async function POST(req: Request) {
-    try {
-        console.log('API Route: Request received.');
-        const { messages } = await req.json();
-        console.log('API Route: Messages parsed:', JSON.stringify(messages));
-
-        if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-            console.error('API Route: GOOGLE_GENERATIVE_AI_API_KEY not found.');
-            return new Response('Google API key not found. Please set GOOGLE_GENERATIVE_AI_API_KEY.', { status: 500 });
-        }
-
-        if (!process.env.TIMEZONE_API_KEY) {
-            console.error('API Route: TIMEZONE_API_KEY not found. Time zone and Geocoding for Weather tool may not function correctly.');
-        }
-        if (!process.env.OPENWEATHERMAP_API_KEY) {
-            console.error('API Route: OPENWEATHERMAP_API_KEY not found. Weather tool will not function correctly.');
-        }
-
-        const model = google('models/gemini-1.5-flash');
-
-        const systemMessage = {
-            role: 'system',
-            content: `You are an AI-powered travel assistant specializing in itinerary creation and providing helpful travel information.
-            When asked to create an itinerary or plan a trip, generate a response structured with daily breakdowns.
-            For each day, suggest activities, sights, and perhaps food recommendations.
-            Use clear headings for days (e.g., "Day 1: Arrival and City Exploration") and markdown for formatting.
-            Keep responses engaging and easy to read.
-            If asked about booking flights, hotels, or other real-time services, always suggest looking up real-time availability on dedicated booking websites (e.g., Expedia, Booking.com, Google Flights).
-            You have access to tools to get current information:
-            - 'getTimeForCity': Use this when the user asks about the current time in a city.
-            - 'getWeatherForCity': Use this when the user asks about the current weather or temperature in a city.
-            After successfully using a tool and receiving the result, you MUST then provide a clear, conversational answer to the user in natural language, directly stating the information you retrieved. Do NOT just output the raw tool result.`,
-        };
-
-        console.log('API Route: Calling streamText with tools...');
-        const result = await streamText({
-            model: model,
-            messages: [systemMessage, ...messages],
-            temperature: 0.0,
-            maxTokens: 1000,
-            tools: {
-                getTimeForCity: getTimeForCityTool,
-                getWeatherForCity: getWeatherForCityTool
-            },
-            maxSteps: 5,
-            onError: (error) => {
-                console.error('AI SDK streamText Error (from onError callback):', JSON.stringify(error, null, 2));
-            },
-        });
-
-        console.log('API Route: streamText call completed. Returning response.');
-        return result.toDataStreamResponse();
-    } catch (error) {
-        console.error('API Route: Caught an error during request processing (from catch block):', error);
-        if (process.env.NODE_ENV === 'development') {
-            return new Response(`Error processing request: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
-        }
-        return new Response('Internal Server Error', { status: 500 });
-    }
-}
-
 */
-
+// app/api/chat/route.ts
 import { streamText } from 'ai';
 import { google } from '@ai-sdk/google';
 import * as z from 'zod';
@@ -1002,9 +769,9 @@ async function getWeatherForCity(cityName: string): Promise<string> {
             // OpenWeatherMap often returns an object with 'message' on error
             try {
                 const errorJson = JSON.parse(errorBody);
-                return `Sorry, there was an issue getting weather for "${cityName}". (Details: ${errorJson.message || weatherResponse.statusText})`;
-            } catch  {
-                return `Sorry, there was an issue getting weather for "${cityName}". (Status: ${weatherResponse.status} ${weatherResponse.statusText})`;
+                return `Sorry, there was an issue getting current weather for "${cityName}". (Details: ${errorJson.message || weatherResponse.statusText})`;
+            } catch {
+                return `Sorry, there was an issue getting current weather for "${cityName}". (Status: ${weatherResponse.status} ${weatherResponse.statusText})`;
             }
         }
 
@@ -1018,71 +785,130 @@ async function getWeatherForCity(cityName: string): Promise<string> {
         const humidity = weatherData.main.humidity;
         const windSpeed = weatherData.wind.speed; // in miles/hour if units=imperial
 
-        return `The weather in ${cityName} is currently ${description} with a temperature of ${temperature}°F (feels like ${feelsLike}°F). Humidity is ${humidity}% and wind speed is ${windSpeed} mph.`;
+        return `The current weather in ${cityName} is ${description} with a temperature of ${temperature}°F (feels like ${feelsLike}°F). Humidity is ${humidity}% and wind speed is ${windSpeed} mph.`;
 
     } catch (error) {
         console.error(`Error in getWeatherForCity for ${cityName}:`, error);
         if (error instanceof TypeError && error.message.includes('fetch')) {
-            return `There was a network issue trying to connect to the weather service. Please check your internet connection or try again later.`;
+            return `There was a network issue trying to connect to the current weather service. Please check your internet connection or try again later.`;
         }
-        return `There was an unexpected error trying to get the weather for ${cityName}.`;
+        return `There was an unexpected error trying to get the current weather for ${cityName}.`;
     }
 }
 
 /**
- * Gets the current exchange rate between two currencies using APILayer's Exchange Rates Data API.
- * Requires EXCHANGE_RATE_API_KEY from APILayer (e.g., from exchangerate.host free tier).
- * Uses ISO 4217 currency codes (e.g., "USD", "EUR", "JPY").
- * @param fromCurrency The currency code to convert from.
- * @param toCurrency The currency code to convert to.
- * @returns A string containing the current exchange rate, or an error message.
+ * Gets the weather forecast for a specified city for the next few days.
+ * Uses Google Geocoding API (with TIMEZONE_API_KEY) for coordinates and OpenWeatherMap API (with OPENWEATHERMAP_API_KEY) for forecast data.
+ * @param cityName The name of the city.
+ * @returns A string describing the weather forecast, or an error message.
  */
-async function getExchangeRate(fromCurrency: string, toCurrency: string): Promise<string> {
-    const exchangeRateApiKey = process.env.EXCHANGE_RATE_API_KEY;
+async function getWeatherForecastForCity(cityName: string): Promise<string> {
+    const googleMapsApiKey = process.env.TIMEZONE_API_KEY; // Reusing for Geocoding
+    const openWeatherMapApiKey = process.env.OPENWEATHERMAP_API_KEY;
 
-    if (!exchangeRateApiKey) {
-        console.error("getExchangeRate: EXCHANGE_RATE_API_KEY not configured.");
-        return "Error: Exchange Rate API key not configured on the server. Cannot get exchange rates.";
+    if (!googleMapsApiKey) {
+        return "Error: Google Maps API key not configured for location services. Cannot get weather forecast.";
+    }
+    if (!openWeatherMapApiKey) {
+        return "Error: OpenWeatherMap API key not configured. Cannot get weather forecast.";
     }
 
     try {
-        // This is the most consistent URL for APILayer's Exchange Rates Data API free tier
-        const exchangeRateUrl = `https://api.apilayer.com/exchangerates_data/latest?base=${fromCurrency.toUpperCase()}&symbols=${toCurrency.toUpperCase()}`;
-        
-        console.log(`[Tool] Calling Exchange Rate API for ${fromCurrency} to ${toCurrency}`);
-        const response = await fetch(exchangeRateUrl, {
-            headers: {
-                "apikey": exchangeRateApiKey // API key sent as a header
+        // Step 1: Use Google Geocoding API to get Lat/Lon for the city
+        console.log(`[Tool] Calling Google Geocoding API for forecast for city: ${cityName}`);
+        const geocodingResponse = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cityName)}&key=${googleMapsApiKey}`
+        );
+        const geocodingData = await geocodingResponse.json();
+
+        if (!geocodingResponse.ok || geocodingData.status !== 'OK' || geocodingData.results.length === 0) {
+            const errorDetail = geocodingData.error_message || geocodingData.status;
+            console.error(`Geocoding failed for forecast in ${cityName}: ${errorDetail}`);
+            if (geocodingData.status === 'REQUEST_DENIED') {
+                return `Sorry, I couldn't access location services to find "${cityName}'s" forecast. There might be an issue with the Google Maps API key or its permissions.`;
             }
-        });
-        const data = await response.json();
-
-        // Check for both HTTP errors and API-specific success status
-        // APILayer returns a 'success' boolean and an 'error' object on failures.
-        if (!response.ok || data.success === false) {
-            const errorDetail = data.error?.info || data.message || response.statusText;
-            console.error(`Exchange rate API failed for ${fromCurrency} to ${toCurrency}: ${errorDetail}`);
-            return `Sorry, I couldn't get the exchange rate for ${fromCurrency} to ${toCurrency}. (Details: ${errorDetail})`;
+            return `Sorry, I couldn't find "${cityName}" to get its weather forecast. Please try a more specific or common city name.`;
         }
 
-        const rate = data.rates[toCurrency.toUpperCase()];
+        const { lat, lng } = geocodingData.results[0].geometry.location;
+        console.log(`[Tool] Geocoded ${cityName} for forecast to Lat: ${lat}, Lng: ${lng}`);
 
-        if (typeof rate === 'number') {
-            return `The current exchange rate from 1 ${fromCurrency.toUpperCase()} to ${toCurrency.toUpperCase()} is ${rate.toFixed(4)}.`;
-        } else {
-            // This case might happen if a currency code is valid but not supported for the given base by the API.
-            return `Could not find exchange rate for ${fromCurrency.toUpperCase()} to ${toCurrency.toUpperCase()}. Please check the currency codes.`;
+        // Step 2: Use OpenWeatherMap 5-day / 3-hour forecast API
+        console.log(`[Tool] Calling OpenWeatherMap Forecast API for Lat: ${lat}, Lng: ${lng}`);
+        const forecastResponse = await fetch(
+            `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=imperial&appid=${openWeatherMapApiKey}`
+        );
+
+        if (!forecastResponse.ok) {
+            console.error(`OpenWeatherMap Forecast API error for ${cityName}: ${forecastResponse.status} ${forecastResponse.statusText}`);
+            const errorBody = await forecastResponse.text();
+            try {
+                const errorJson = JSON.parse(errorBody);
+                return `Sorry, there was an issue getting the weather forecast for "${cityName}". (Details: ${errorJson.message || forecastResponse.statusText})`;
+            } catch {
+                return `Sorry, there was an issue getting the weather forecast for "${cityName}". (Status: ${forecastResponse.status} ${forecastResponse.statusText})`;
+            }
         }
+
+        const forecastData = await forecastResponse.json();
+        console.log(`[Tool] Forecast Data for ${cityName}:`, forecastData);
+
+        if (!forecastData.list || forecastData.list.length === 0) {
+            return `No forecast data available for ${cityName}.`;
+        }
+
+        const dailyForecasts: { [key: string]: { minTemp: number, maxTemp: number, descriptions: Set<string> } } = {};
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to start of today
+
+        // Aggregate forecast data by day
+        for (const item of forecastData.list) {
+            const date = new Date(item.dt * 1000); // dt is in seconds
+            date.setHours(0, 0, 0, 0); // Normalize to start of the day
+
+            // Only consider up to 5 full days from today (including today if available)
+            if (date.getTime() < today.getTime()) continue;
+            const dayDiff = Math.round((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            if (dayDiff > 4) continue; // Limit to current day + next 4 days (5 days total)
+
+            const dayKey = date.toISOString().split('T')[0]; //YYYY-MM-DD
+
+            if (!dailyForecasts[dayKey]) {
+                dailyForecasts[dayKey] = {
+                    minTemp: item.main.temp_min,
+                    maxTemp: item.main.temp_max,
+                    descriptions: new Set<string>(),
+                };
+            }
+            dailyForecasts[dayKey].minTemp = Math.min(dailyForecasts[dayKey].minTemp, item.main.temp_min);
+            dailyForecasts[dayKey].maxTemp = Math.max(dailyForecasts[dayKey].maxTemp, item.main.temp_max);
+            dailyForecasts[dayKey].descriptions.add(item.weather[0].description);
+        }
+
+        let resultString = `Here's the weather forecast for ${cityName}:\n\n`;
+        const sortedDates = Object.keys(dailyForecasts).sort();
+
+        const options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
+
+        for (const dayKey of sortedDates) {
+            const forecast = dailyForecasts[dayKey];
+            const date = new Date(dayKey);
+            const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
+            const descriptions = Array.from(forecast.descriptions).join(', ');
+
+            resultString += `**${formattedDate}**: ${descriptions} with temperatures from ${Math.round(forecast.minTemp)}°F to ${Math.round(forecast.maxTemp)}°F.\n`;
+        }
+
+        return resultString;
 
     } catch (error) {
-        console.error(`Error in getExchangeRate for ${fromCurrency} to ${toCurrency}:`, error);
+        console.error(`Error in getWeatherForecastForCity for ${cityName}:`, error);
         if (error instanceof TypeError && error.message.includes('fetch')) {
-            return `There was a network issue trying to connect to the exchange rate service. Please check your internet connection or try again later.`;
+            return `There was a network issue trying to connect to the weather forecast service. Please check your internet connection or try again later.`;
         }
-        return `There was an unexpected error trying to get the exchange rate.`;
+        return `There was an unexpected error trying to get the weather forecast for ${cityName}.`;
     }
 }
-
 
 /**
  * Searches for points of interest or attractions in a specified city using Google Places API (New).
@@ -1193,9 +1019,221 @@ async function searchPlacesOfInterest(city: string, query: string): Promise<stri
     }
 }
 
+/**
+ * Searches for global events using SerpApi's Google Events API.
+ * Requires SERPAPI_API_KEY configured.
+ * @param query The specific search query for events (e.g., "music festival", "football game", "art show").
+ * @param city Optional: The city name to narrow down the event search.
+ * @param dateRange Optional: A human-readable date range (e.g., "today", "tomorrow", "this weekend", "next week", "this month", "next month").
+ * @returns A string summarizing the found events, or an error message.
+ */
+async function searchGlobalEvents(query: string, city?: string, dateRange?: string): Promise<string> {
+    const serpApiKey = process.env.SERPAPI_API_KEY;
+
+    if (!serpApiKey) {
+        console.error("searchGlobalEvents: SERPAPI_API_KEY not configured.");
+        return "Error: SerpApi API key not configured on the server. Cannot search for global events.";
+    }
+
+    try {
+        const baseUrl = 'https://serpapi.com/search';
+        const params = new URLSearchParams();
+
+        params.append('api_key', serpApiKey);
+        params.append('engine', 'google_events');
+        params.append('q', query); // Main query (e.g., "events", "concerts", "festivals")
+
+        if (city) {
+            params.append('location', city); // Narrow search to a city
+        }
+
+        // Map human-readable date ranges to SerpApi's htichips for Google Events
+        const dateChipMap: { [key: string]: string } = {
+            'today': 'date:today',
+            'tomorrow': 'date:tomorrow',
+            'this weekend': 'date:this_weekend',
+            'next week': 'date:next_week',
+            'this month': 'date:this_month',
+            'next month': 'date:next_month',
+        };
+
+        const effectiveDateRange = dateRange ? dateRange.toLowerCase() : '';
+        if (dateChipMap[effectiveDateRange]) {
+            params.append('htichips', `event_chips:${dateChipMap[effectiveDateRange]}`);
+        } else if (dateRange) { // Log unsupported date ranges but don't error out
+             console.warn(`[Tool] Unsupported dateRange for SerpApi htichips: "${dateRange}"`);
+             // For unsupported ranges, the query might still be broad enough for Google to interpret.
+             // No 'htichips' means no specific date filter from SerpApi's side, relying on 'q'.
+        }
+
+        // Limit to a reasonable number of results for brevity
+        params.append('num', '5');
+
+        const url = `${baseUrl}?${params.toString()}`;
+        console.log(`[Tool] Calling SerpApi Google Events API for query: "${query}" (City: "${city || 'any'}", Date: "${dateRange || 'any'}")`);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok) {
+            const errorDetail = data.error?.message || response.statusText;
+            console.error(`SerpApi Google Events API failed for query "${query}" in ${city}: ${errorDetail}`);
+            return `Sorry, I couldn't find any events for "${query}" in ${city || 'the specified location'}. (Details: ${errorDetail})`;
+        }
+
+        if (!data.events_results || data.events_results.length === 0) {
+            let msg = `I couldn't find any events`;
+            if (query && query !== 'events') msg += ` matching "${query}"`; // Don't repeat "events events"
+            if (city) msg += ` in ${city}`;
+            if (dateRange && dateChipMap[effectiveDateRange]) msg += ` for ${dateRange}`; // Only mention if it was a supported filter
+            msg += `. Please try a different query or location.`;
+            return msg;
+        }
+
+        let resultString = `Here are some events`;
+        if (query && query !== 'events') resultString += ` matching "${query}"`;
+        if (city) resultString += ` in ${city}`;
+        if (dateRange && dateChipMap[effectiveDateRange]) resultString += ` for ${dateRange}`;
+        resultString += `:\n\n`;
+
+        const eventsToShow = data.events_results.slice(0, 3); // Show top 3 events for brevity
+
+        interface SerpApiEvent {
+            title?: string;
+            address?: string[];
+            starts_at?: string; // e.g., "Monday, June 24" or "7:00 PM"
+            description?: string;
+            link?: string;
+            ticket_info?: {
+                link?: string;
+                source?: string;
+            };
+        }
+
+        eventsToShow.forEach((event: SerpApiEvent, index: number) => {
+            const eventName = event.title || 'N/A';
+            const eventAddress = event.address ? event.address.join(', ') : 'Unknown location';
+            const eventTime = event.starts_at ? new Date(event.starts_at).toLocaleString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'
+            }) : 'Unknown time';
+            const eventDescription = event.description ? event.description.split('\n')[0].substring(0, 150) + (event.description.length > 150 ? '...' : '') : ''; // Shorten description
+            const eventLink = event.link || event.ticket_info?.link || 'No URL available';
+
+            resultString += `${index + 1}. **${eventName}**\n`;
+            resultString += `   When: ${eventTime}\n`;
+            resultString += `   Where: ${eventAddress}\n`;
+            if (eventDescription) {
+                resultString += `   Description: ${eventDescription}\n`;
+            }
+            if (eventLink && eventLink !== 'No URL available') {
+                resultString += `   More Info: ${eventLink}\n`;
+            }
+            resultString += `\n`;
+        });
+
+        return resultString;
+
+    } catch (error) {
+        console.error(`Error in searchGlobalEvents for query "${query}" in ${city}:`, error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            return `There was a network issue trying to connect to the event search service. Please check your internet connection or try again later.`;
+        }
+        return `There was an unexpected error trying to find global events.`;
+    }
+}
+
+/**
+ * Gets travel directions, estimated distance, and travel time between two specific locations.
+ * Uses Google Maps Platform Directions API.
+ * Requires Google Maps Platform API key with Directions API enabled (reusing TIMEZONE_API_KEY for simplicity).
+ * @param origin The starting location (e.g., "Eiffel Tower", "Heathrow Airport").
+ * @param destination The ending location (e.g., "Louvre Museum", "Central London").
+ * @param mode The mode of transport ('driving', 'walking', 'bicycling', 'transit'). Defaults to 'driving'.
+ * @param cityOrRegion Optional: Contextual city/region to help disambiguate locations.
+ * @returns A string containing the directions summary and steps, or an error message.
+ */
+async function getTravelDirections(
+    origin: string,
+    destination: string,
+    mode: 'driving' | 'walking' | 'bicycling' | 'transit' = 'driving',
+    cityOrRegion?: string
+): Promise<string> {
+    const apiKey = process.env.TIMEZONE_API_KEY; // Reusing Google Maps Platform API key
+
+    if (!apiKey) {
+        return "Error: Google Maps Platform API key not configured. Cannot get directions.";
+    }
+
+    try {
+        const params = new URLSearchParams();
+        // Combine origin/destination with cityOrRegion if provided to make query more specific for Directions API
+        const fullOrigin = cityOrRegion ? `${origin}, ${cityOrRegion}` : origin;
+        const fullDestination = cityOrRegion ? `${destination}, ${cityOrRegion}` : destination;
+
+        params.append('origin', fullOrigin);
+        params.append('destination', fullDestination);
+        params.append('mode', mode); // driving, walking, bicycling, transit
+        params.append('key', apiKey);
+
+        const url = `https://maps.googleapis.com/maps/api/directions/json?${params.toString()}`;
+        console.log(`[Tool] Calling Google Directions API for ${fullOrigin} to ${fullDestination} via ${mode}`);
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok || data.status !== 'OK') {
+            const errorDetail = data.error_message || data.status;
+            console.error(`Directions API failed for ${fullOrigin} to ${fullDestination}: ${errorDetail}`);
+            if (data.status === 'ZERO_RESULTS') {
+                return `Sorry, I couldn't find directions for ${origin} to ${destination} via ${mode}. The locations might be too far, or there might be no route available for that mode of transport. Please try being more specific or try a different mode.`;
+            }
+            if (data.status === 'REQUEST_DENIED') {
+                 return `Sorry, I couldn't access directions services. There might be an issue with the Google Maps Platform API key or its permissions (ensure Directions API is enabled).`;
+            }
+            return `Sorry, there was an issue getting directions for ${origin} to ${destination}. (Details: ${errorDetail})`;
+        }
+
+        const route = data.routes[0];
+        if (!route) {
+            return `Sorry, I couldn't find a route from ${origin} to ${destination} via ${mode}.`;
+        }
+
+        const leg = route.legs[0]; // Assuming single leg for simple A-B directions
+        const distance = leg.distance.text; // e.g., "1.5 km"
+        const duration = leg.duration.text; // e.g., "5 mins"
+
+        let resultString = `Directions from ${origin} to ${destination} by ${mode}:\n`;
+        resultString += `Estimated distance: ${distance}\n`;
+        resultString += `Estimated travel time: ${duration}\n\n`;
+
+        resultString += `Steps:\n`;
+        // Limit steps to first 5-7 for brevity in AI response
+        interface DirectionStep {
+            html_instructions: string;
+            distance: { text: string };
+        }
+        leg.steps.slice(0, 7).forEach((step: DirectionStep, index: number) => {
+            // Remove HTML tags from instructions (e.g., <b>)
+            const instruction = step.html_instructions.replace(/<[^>]*>/g, '');
+            resultString += `${index + 1}. ${instruction} (${step.distance.text})\n`;
+        });
+        if (leg.steps.length > 7) {
+            resultString += `...and ${leg.steps.length - 7} more steps. For full detailed instructions, consider using a mapping app.\n`;
+        }
+
+        return resultString;
+
+    } catch (error) {
+        console.error(`Error in getTravelDirections for ${origin} to ${destination}:`, error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            return `There was a network issue trying to connect to the directions service. Please check your internet connection or try again later.`;
+        }
+        return `There was an unexpected error trying to get directions.`;
+    }
+}
+
 
 // --- Tool Definitions ---
-// These are defined before the POST function so they are available when referenced.
 
 const getTimeForCityTool = {
     name: 'getTimeForCity',
@@ -1213,7 +1251,7 @@ const getTimeForCityTool = {
 
 const getWeatherForCityTool = {
     name: 'getWeatherForCity',
-    description: 'Get the current weather conditions for a specified global city. Use this when the user asks about the weather or temperature in a city.',
+    description: 'Get the current weather conditions for a specified global city. Use this when the user asks about the current weather or temperature in a city.',
     parameters: z.object({
         city: z.string().describe('The name of the city, e.g., "Tokyo", "London", "New York".'),
     }),
@@ -1225,18 +1263,17 @@ const getWeatherForCityTool = {
     },
 };
 
-const getExchangeRateTool = {
-    name: 'getExchangeRate',
-    description: 'Get the current exchange rate between two currencies. Use this when the user asks to convert currency or wants to know exchange rates. Provide the rate from the first currency to the second currency. IMPORTANT: Always use ISO 4217 currency codes (e.g., "USD", "EUR", "JPY", "GBP") for the currency parameters. If the user gives a currency name (like "US dollars"), try to infer the correct code (e.g., "USD").',
+const getWeatherForecastForCityTool = {
+    name: 'getWeatherForecastForCity',
+    description: 'Get the multi-day weather forecast for a specified global city. Use this when the user asks for the "forecast", "weather for next week", or "weather outlook" for a city.',
     parameters: z.object({
-        fromCurrency: z.string().describe('The currency code to convert from (e.g., "USD").'),
-        toCurrency: z.string().describe('The currency code to convert to (e.g., "EUR").'),
+        city: z.string().describe('The name of the city, e.g., "Tokyo", "London", "New York".'),
     }),
-    execute: async ({ fromCurrency, toCurrency }: { fromCurrency: string; toCurrency: string }) => {
-        console.log(`[Tool Call] getExchangeRate from ${fromCurrency} to ${toCurrency}`);
-        const rate = await getExchangeRate(fromCurrency, toCurrency);
-        console.log(`[Tool Output] ${rate}`);
-        return rate;
+    execute: async ({ city }: { city: string }) => {
+        console.log(`[Tool Call] getWeatherForecastForCity for city: ${city}`);
+        const forecast = await getWeatherForecastForCity(city);
+        console.log(`[Tool Output] ${forecast}`);
+        return forecast;
     },
 };
 
@@ -1255,6 +1292,41 @@ const searchPlacesOfInterestTool = {
     },
 };
 
+const searchGlobalEventsTool = {
+    name: 'searchGlobalEvents',
+    description: 'Find upcoming global events, concerts, festivals, sports, and other happenings using Google Events search. **This is the primary tool for all event searches.** It can be used for specific cities or broader queries, and works with date ranges like "today", "tomorrow", "this weekend", "next week", "this month", "next month".',
+    parameters: z.object({
+        query: z.string().describe('The specific type of event or general event query, e.g., "music festivals", "rock concerts", "football games", "food festivals", "art exhibitions", or simply "events". This is required.'),
+        city: z.string().optional().describe('Optional: The name of the city or general location to narrow down the event search, e.g., "London", "Tokyo", "California".'),
+        dateRange: z.string().optional().describe('Optional: A human-readable date range for the events, e.g., "today", "tomorrow", "this weekend", "next week", "this month", "next month".'),
+    }),
+    execute: async ({ query, city, dateRange }: { query: string; city?: string; dateRange?: string }) => {
+        console.log(`[Tool Call] searchGlobalEvents for query: "${query}" (City: "${city || 'any'}", Date: "${dateRange || 'any'}")`);
+        const result = await searchGlobalEvents(query, city, dateRange);
+        console.log(`[Tool Output] ${result}`);
+        return result;
+    },
+};
+
+const getTravelDirectionsTool = {
+    name: 'getTravelDirections',
+    description: 'Get travel directions, estimated distance, and travel time between two specific locations, with an optional mode of transport (driving, walking, bicycling, transit). Use this when the user asks for "directions from X to Y", "how to get from A to B", "travel time between locations", or "public transport from/to specific places".',
+    parameters: z.object({
+        origin: z.string().describe('The starting location (e.g., "Eiffel Tower", "Heathrow Airport", "My hotel"). This should be as specific as possible.'),
+        destination: z.string().describe('The ending location (e.g., "Louvre Museum", "Central London", "a restaurant"). This should be as specific as possible.'),
+        mode: z.enum(['driving', 'walking', 'bicycling', 'transit']).optional().describe('Optional: The mode of transport. Choose "transit" for public transportation requests, "walking" for walking, "bicycling" for cycling, or "driving" for car travel. Defaults to "driving" if not specified and not implied otherwise.'),
+        cityOrRegion: z.string().optional().describe('Optional: The city or region where the directions are needed (e.g., "Paris", "London"). Provide this to help disambiguate locations if they are generic (e.g., "Main Street").'),
+    }),
+    execute: async ({ origin, destination, mode, cityOrRegion }: { origin: string; destination: string; mode?: 'driving' | 'walking' | 'bicycling' | 'transit'; cityOrRegion?: string }) => {
+        console.log(`[Tool Call] getTravelDirections from "${origin}" to "${destination}" via "${mode || 'default'}" in ${cityOrRegion || 'N/A'}`);
+        
+        const result = await getTravelDirections(origin, destination, mode, cityOrRegion);
+        console.log(`[Tool Output] ${result}`);
+        return result;
+    },
+};
+
+
 // --- Main POST Function for AI Stream ---
 
 export async function POST(req: Request) {
@@ -1270,45 +1342,64 @@ export async function POST(req: Request) {
         }
         // Informative warnings for other API keys, but don't stop the whole service if they're missing
         if (!process.env.TIMEZONE_API_KEY) {
-            console.error('API Route: TIMEZONE_API_KEY not found. Time zone, Geocoding, and Places tools may not function correctly.');
+            console.error('API Route: TIMEZONE_API_KEY not found. Time zone, Geocoding, Places, and Directions tools may not function correctly.');
         }
         if (!process.env.OPENWEATHERMAP_API_KEY) {
-            console.error('API Route: OPENWEATHERMAP_API_KEY not found. Weather tool will not function correctly.');
+            console.error('API Route: OPENWEATHERMAP_API_KEY not found. Weather tools will not function correctly.');
         }
-        if (!process.env.EXCHANGE_RATE_API_KEY) {
-            console.error('API Route: EXCHANGE_RATE_API_KEY not found. Exchange rate tool will not function correctly.');
+        if (!process.env.SERPAPI_API_KEY) {
+            console.error('API Route: SERPAPI_API_KEY not found. Global event search tool (Google Events) will not function correctly.');
         }
 
-        const model = google('models/gemini-1.5-flash'); // Or 'models/gemini-pro', 'gemini-1.5-flash-latest' etc.
 
-        // System message defines the AI's persona, capabilities, and instructions for tool usage.
-        const systemMessage = {
-            role: 'system',
-            content: `You are an AI-powered travel assistant specializing in itinerary creation and providing helpful travel information.
+        const model = google('models/gemini-1.5-flash');
+
+        // --- Dynamic Current Date Injection ---
+        const now = new Date();
+        const dateFormatter = new Intl.DateTimeFormat('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        const currentDateString = dateFormatter.format(now);
+
+        // --- System Message Definition (now includes dynamic date and updated tool preferences) ---
+        const baseSystemMessageContent = `You are an AI-powered travel assistant specializing in itinerary creation and providing helpful travel information.
             When asked to create an itinerary or plan a trip, generate a response structured with daily breakdowns.
             For each day, suggest activities, sights, and perhaps food recommendations.
             Use clear headings for days (e.g., "Day 1: Arrival and City Exploration") and markdown for formatting.
             Keep responses engaging and easy to read.
+            When creating an itinerary, proactively use your available tools (like weather forecasts, event searches, and place searches) to gather relevant information for the destination and dates, and seamlessly integrate this real-time data into your daily recommendations.
             If asked about booking flights, hotels, or other real-time services, always suggest looking up real-time availability on dedicated booking websites (e.g., Expedia, Booking.com, Google Flights).
+            If you are unable to find information using your tools for specific queries (e.g., for very specific real-time schedules like professional sports games, or if a general search yields no results), or if the information retrieved is incomplete (such as missing exact dates or specific times for events), please provide a user-friendly explanation and advise the user to check authoritative external sources relevant to their query (e.g., official event websites, league/team websites, local venue sites, broader event listing platforms like Ticketmaster/Live Nation, local tourism boards, or dedicated sports news platforms like ESPN/MLB.com).
             You have access to tools to get current information:
             - 'getTimeForCity': Use this when the user asks about the current time in a city.
             - 'getWeatherForCity': Use this when the user asks about the current weather or temperature in a city.
-            - 'getExchangeRate': Use this when the user asks to convert currency or wants to know exchange rates between two currencies. Provide the rate from the first currency to the second currency. IMPORTANT: Always use ISO 4217 currency codes (e.g., USD, EUR, JPY, GBP) for the currency parameters. If the user gives a currency name (like "US dollars"), try to infer the correct code (e.g., "USD").
+            - 'getWeatherForecastForCity': Use this when the user asks for the "forecast", "weather for next week", or "weather outlook" for a city.
             - 'searchPlacesOfInterest': Use this when the user asks for attractions, points of interest, or specific types of places (like museums, parks, restaurants) in a city.
-            After successfully using a tool and receiving the result, you MUST then provide a clear, conversational answer to the user in natural language, directly stating the information you retrieved. Do NOT just output the raw tool result.`,
+            - 'searchGlobalEvents': Find upcoming global events, concerts, festivals, sports, and other happenings using Google Events search. This is the primary tool for all event searches. It can be used for specific cities or broader queries, and works with date ranges like "today", "tomorrow", "this weekend", "next week", "this month", "next month".
+            - 'getTravelDirections': Use this when the user asks for "directions from X to Y", "how to get from A to B", "travel time between locations", or "public transport from/to specific places". **When providing directions, you MUST clearly state the estimated distance and travel time.** Additionally, **you MUST provide the initial few steps of the journey directly in a clear, numbered list format** from the tool's output to give the user a preview of the route. After providing these summary directions, **you should then** advise the user to consult a dedicated mapping application for full, real-time navigation details.
+            After successfully using a tool and receiving the result, you MUST then provide a clear, conversational, and factually precise answer to the user in natural language, directly stating the information you retrieved. Do NOT just output the raw tool result.`;
+
+        const systemMessage = {
+            role: 'system',
+            content: `The current date is ${currentDateString}.\n\n${baseSystemMessageContent}`,
         };
 
         console.log('API Route: Calling streamText with tools...');
         const result = await streamText({
             model: model,
-            messages: [systemMessage, ...messages], // Pass system message and user messages
+            messages: [systemMessage, ...messages], // Pass the dynamically created system message and user messages
             temperature: 0.0, // Set low for more deterministic tool use
             maxTokens: 1000,
             tools: {
                 getTimeForCity: getTimeForCityTool,
                 getWeatherForCity: getWeatherForCityTool,
-                getExchangeRate: getExchangeRateTool,
-                searchPlacesOfInterest: searchPlacesOfInterestTool, // <-- New tool added here
+                getWeatherForecastForCity: getWeatherForecastForCityTool,
+                searchPlacesOfInterest: searchPlacesOfInterestTool,
+                searchGlobalEvents: searchGlobalEventsTool,
+                getTravelDirections: getTravelDirectionsTool, // <-- NEW TOOL ADDED HERE
             },
             maxSteps: 5, // Limit the number of tool calls the model can make in a single turn
             onError: (error) => {
@@ -1327,4 +1418,3 @@ export async function POST(req: Request) {
         return new Response('Internal Server Error', { status: 500 });
     }
 }
-
