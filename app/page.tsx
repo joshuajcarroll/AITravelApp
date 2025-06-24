@@ -2,6 +2,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -75,9 +76,10 @@ export default function ChatPage() {
         ))}
 
         {isLoading && (
-          <div className="flex justify-center">
-            <div className="p-3 rounded-lg shadow-md bg-gray-200 text-gray-700">
-              AI is thinking...
+          <div className="flex justify-start"> {/* Align left like AI messages */}
+            <div className="max-w-md p-3 rounded-lg shadow-md bg-gray-200 text-gray-700 flex items-center space-x-2">
+              <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-400 h-6 w-6"></div> {/* Spinner */}
+              <span>AI is thinking...</span>
             </div>
           </div>
         )}
@@ -94,9 +96,9 @@ export default function ChatPage() {
       </main>
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg flex items-center">
+      <form onSubmit={handleSubmit} className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg flex items-center justify-between space-x-2">
         <input
-          className="flex-1 p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2"
+          className="flex-1 p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2 placeholder-gray-500"
           value={input}
           placeholder={isLoading ? "Generating response..." : "Ask me about travel..."}
           onChange={handleInputChange}
@@ -104,10 +106,16 @@ export default function ChatPage() {
         />
         <button
           type="submit"
-          className="px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors duration-200"
           disabled={isLoading || !input.trim()}
         >
-          Send
+          {isLoading ? (
+            // Spinner directly styled with Tailwind
+            <div className="h-5 w-5 rounded-full border-2 border-solid border-white border-r-transparent animate-spin"></div>
+          ) : (
+            <PaperAirplaneIcon className="h-5 w-5" />
+          )}
+          <span className="ml-2 hidden sm:inline">Send</span>
         </button>
       </form>
     </div>

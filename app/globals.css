@@ -6,3 +6,20 @@ html, body {
   padding: 0;
   overflow: hidden; /* Prevent body scroll, main div will scroll */
 }
+
+.loader {
+  border-right-color: #3B82F6; /* blue-500 equivalent */
+  animation: spin 1s linear infinite;
+}
+
+.loader.button-spinner { /* You can name this anything unique, but 'loader' is generic */
+  border-right-color: #ffffff; /* White spinner against blue button */
+  border-color: rgba(255, 255, 255, 0.3); /* Lighter border color for button spinner */
+  border-top-color: #ffffff; /* Top part is white to create contrast */
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

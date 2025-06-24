@@ -1,641 +1,3 @@
-/*import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
-import * as z from 'zod'; // Make sure you have zod installed: npm install zod
-
-export const dynamic = 'force-dynamic';
-
-// 1. Define a comprehensive map of cities to IANA time zone names
-const CITY_TIMEZONE_MAP: { [key: string]: string } = {
-  "london": "Europe/London",
-  "paris": "Europe/Paris",
-  "berlin": "Europe/Berlin",
-  "tokyo": "Asia/Tokyo",
-  "new york": "America/New_York",
-  "los angeles": "America/Los_Angeles",
-  "sydney": "Australia/Sydney",
-  "dubai": "Asia/Dubai",
-  "ypsilanti": "America/Detroit",
-  "ann arbor": "America/Detroit",
-  "detroit": "America/Detroit",
-  "michigan": "America/Detroit",
-  "chicago": "America/Chicago",
-  "boston": "America/New_York",
-  "san francisco": "America/Los_Angeles",
-  "seattle": "America/Los_Angeles",
-  "miami": "America/New_York",
-  "rome": "Europe/Rome",
-  "rome italy": "Europe/Rome",
-  "moscow": "Europe/Moscow",
-  "beijing": "Asia/Shanghai",
-  "shanghai": "Asia/Shanghai",
-  "hong kong": "Asia/Hong_Kong",
-  "singapore": "Asia/Singapore",
-  "mumbai": "Asia/Kolkata",
-  "delhi": "Asia/Kolkata",
-  "sao paulo": "America/Sao_Paulo",
-  "rio de janeiro": "America/Rio_de_Janeiro", // Corrected for Rio
-  "mexico city": "America/Mexico_City",
-  "toronto": "America/Toronto",
-  "vancouver": "America/Vancouver",
-  "cairo": "Africa/Cairo",
-  "johannesburg": "Africa/Johannesburg",
-  "capetown": "Africa/Johannesburg",
-  "ankara": "Europe/Istanbul",
-  "istanbul": "Europe/Istanbul",
-  "athens": "Europe/Athens",
-  "madrid": "Europe/Madrid",
-  "barcelona": "Europe/Madrid",
-  "lisbon": "Europe/Lisbon",
-  "amsterdam": "Europe/Amsterdam",
-  "brussels": "Europe/Brussels",
-  "stockholm": "Europe/Stockholm",
-  "oslo": "Europe/Oslo",
-  "helsinki": "Europe/Helsinki",
-  "copenhagen": "Europe/Copenhagen",
-  "warsaw": "Europe/Warsaw",
-  "prague": "Europe/Prague",
-  "vienna": "Europe/Vienna",
-  "budapest": "Europe/Budapest",
-  "zurich": "Europe/Zurich",
-  "geneva": "Europe/Zurich",
-  "dublin": "Europe/Dublin",
-  "edinburgh": "Europe/London",
-  "glasgow": "Europe/London",
-  "belfast": "Europe/London",
-  "cardiff": "Europe/London",
-  "manchester": "Europe/London",
-  "liverpool": "Europe/London",
-  "newcastle": "Europe/London",
-  "leeds": "Europe/London",
-  "bristol": "Europe/London",
-  "birmingham": "Europe/London",
-  "sheffield": "Europe/London",
-  "nottingham": "Europe/London",
-  "leicester": "Europe/London",
-  "coventry": "Europe/London",
-  "stoke-on-trent": "Europe/London",
-  "plymouth": "Europe/London",
-  "wolverhampton": "Europe/London",
-  "derby": "Europe/London",
-  "southampton": "Europe/London",
-  "portsmouth": "Europe/London",
-  "brighton": "Europe/London",
-  "oxford": "Europe/London",
-  "cambridge": "Europe/London",
-  "bangkok": "Asia/Bangkok",
-  "ho chi minh city": "Asia/Ho_Chi_Minh",
-  "hanoi": "Asia/Ho_Chi_Minh",
-  "kuala lumpur": "Asia/Kuala_Lumpur",
-  "jakarta": "Asia/Jakarta",
-  "manila": "Asia/Manila",
-  "melbourne": "Australia/Melbourne",
-  "brisbane": "Australia/Brisbane",
-  "perth": "Australia/Perth",
-  "auckland": "Pacific/Auckland",
-  "wellington": "Pacific/Auckland",
-  "fiji": "Pacific/Fiji",
-  "honolulu": "Pacific/Honolulu",
-  "anchorage": "America/Anchorage",
-  "denver": "America/Denver",
-  "phoenix": "America/Phoenix",
-  "dallas": "America/Chicago",
-  "houston": "America/Chicago",
-  "atlanta": "America/New_York",
-  "philadelphia": "America/New_York",
-  "washington dc": "America/New_York",
-  "charlotte": "America/New_York",
-  "orlando": "America/New_York",
-  "nashville": "America/Chicago",
-  "new orleans": "America/Chicago",
-  "st. louis": "America/Chicago",
-  "minneapolis": "America/Chicago",
-  "salt lake city": "America/Salt_Lake_City", // Corrected for Salt Lake City
-  "san diego": "America/Los_Angeles",
-  "portland": "America/Los_Angeles",
-  "las vegas": "America/Los_Angeles",
-  "calgary": "America/Edmonton",
-  "edmonton": "America/Edmonton",
-  "winnipeg": "America/Winnipeg",
-  "montreal": "America/Toronto",
-  "quebec city": "America/Toronto",
-  "halifax": "America/Halifax",
-  "reykjavik": "Atlantic/Reykjavik",
-  "nairobi": "Africa/Nairobi",
-  "lagos": "Africa/Lagos",
-  "accra": "Africa/Accra",
-  "dakar": "Africa/Dakar",
-  "casablanca": "Africa/Casablanca",
-  "algiers": "Africa/Algiers",
-  "tunis": "Africa/Tunis",
-  "tripoli": "Africa/Tripoli",
-  "baghdad": "Asia/Baghdad",
-  "riyadh": "Asia/Riyadh",
-  "doha": "Asia/Qatar",
-  "abu dhabi": "Asia/Dubai",
-  "muscat": "Asia/Muscat",
-  "kuwait city": "Asia/Kuwait",
-  "manama": "Asia/Bahrain",
-  "tel aviv": "Asia/Jerusalem",
-  "jerusalem": "Asia/Jerusalem",
-  "beirut": "Asia/Beirut",
-  "damascus": "Asia/Damascus",
-  "san jose": "America/Los_Angeles", // Assuming CA, USA San Jose
-  "san juan": "America/Puerto_Rico",
-  "bogota": "America/Bogota",
-  "lima": "America/Lima",
-  "santiago": "America/Santiago",
-  "buenos aires": "America/Argentina/Buenos_Aires",
-  "montevideo": "America/Montevideo",
-  "caracas": "America/Caracas",
-  "quito": "America/Guayaquil",
-  "la paz": "America/La_Paz",
-  "asuncion": "America/Asuncion",
-  "georgetown": "America/Guyana",
-  "kingston": "America/Jamaica",
-  "havana": "America/Havana",
-  "port-au-prince": "America/Port-au-Prince",
-  "santo domingo": "America/Santo_Domingo",
-  "panama city": "America/Panama",
-  "san salvador": "America/El_Salvador",
-  "guatemala city": "America/Guatemala",
-  "tegucigalpa": "America/Tegucigalpa",
-  "managua": "America/Managua",
-  "belmopan": "America/Belize",
-  "nassau": "America/Nassau",
-  "bridgetown": "America/Barbados",
-  "castries": "America/St_Lucia",
-  "port of spain": "America/Port_of_Spain",
-  "paramaribo": "America/Paramaribo",
-  "cayenne": "America/Cayenne",
-  "nuuk": "America/Nuuk",
-  "saint-pierre": "America/Miquelon",
-  "funchal": "Atlantic/Madeira",
-  "praia": "Atlantic/Cape_Verde",
-  "abidjan": "Africa/Abidjan",
-  "conakry": "Africa/Conakry",
-  "monrovia": "Africa/Monrovia",
-  "freetown": "Africa/Freetown",
-  "bamako": "Africa/Bamako",
-  "ouagadougou": "Africa/Ouagadougou",
-  "niamey": "Africa/Niamey",
-  "n'djamena": "Africa/Ndjamena",
-  "khartoum": "Africa/Khartoum",
-  "addis ababa": "Africa/Addis_Ababa",
-  "dar es salaam": "Africa/Dar_es_Salaam",
-  "kampala": "Africa/Kampala",
-  "kigali": "Africa/Kigali",
-  "bujumbura": "Africa/Bujumbura",
-  "lusaka": "Africa/Lusaka",
-  "harare": "Africa/Harare",
-  "gaborone": "Africa/Gaborone",
-  "windhoek": "Africa/Windhoek",
-  "luanda": "Africa/Luanda",
-  "brazzaville": "Africa/Brazzaville",
-  "kinshasa": "Africa/Kinshasa",
-  "libreville": "Africa/Libreville",
-  "yaounde": "Africa/Douala",
-  "douala": "Africa/Douala",
-  "bangui": "Africa/Bangui",
-  "juba": "Africa/Juba",
-  "porto-novo": "Africa/Porto-Novo",
-  "lome": "Africa/Lome",
-  "cotonou": "Africa/Porto-Novo",
-  "malabo": "Africa/Malabo",
-  "saudi arabia": "Asia/Riyadh",
-  "united arab emirates": "Asia/Dubai",
-  "qatar": "Asia/Qatar",
-  "oman": "Asia/Muscat",
-  "kuwait": "Asia/Kuwait",
-  "bahrain": "Asia/Bahrain",
-  "israel": "Asia/Jerusalem",
-  "lebanon": "Asia/Beirut",
-};
-
-function _getLocalTimeForCity(city: string): string {
-  const normalizedCity = city.toLowerCase();
-  const timeZone = CITY_TIMEZONE_MAP[normalizedCity];
-
-  if (!timeZone) {
-    return `Sorry, I don't have specific time zone information for "${city}". Please try a major global city like Tokyo, London, or New York.`;
-  }
-
-  try {
-    const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      hour12: true,
-      timeZone: timeZone,
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    };
-    const localTime = new Intl.DateTimeFormat('en-US', options).format(now);
-    return `The current local time in ${city} is ${localTime}.`;
-  } catch (error) {
-    console.error(`Error getting time for ${city} (${timeZone}):`, error);
-    return `There was an error trying to get the time for ${city}.`;
-  }
-}
-
-// 2. Define the 'tool' object for the AI SDK with the execute function
-const getTimeForCityTool = {
-  name: 'getTimeForCity',
-  description: 'Get the current local time for a specified global city. Use this when the user asks about the current time in a city.',
-  parameters: z.object({
-    city: z.string().describe('The name of the city, e.g., "Tokyo", "London", "New York".'),
-  }),
-  execute: async ({ city }: { city: string }) => {
-    console.log(`[Tool Call] getTimeForCity for city: ${city}`);
-    const time = _getLocalTimeForCity(city);
-    console.log(`[Tool Output] ${time}`);
-    return time;
-  },
-};
-
-export async function POST(req: Request) {
-  try {
-    console.log('API Route: Request received.');
-    const { messages } = await req.json();
-    console.log('API Route: Messages parsed:', JSON.stringify(messages));
-
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      console.error('API Route: GOOGLE_GENERATIVE_AI_API_KEY not found.');
-      return new Response('Google API key not found. Please set GOOGLE_GENERATIVE_AI_API_KEY.', { status: 500 });
-    }
-    const model = google('models/gemini-1.5-flash');
-
-    const systemMessage = {
-      role: 'system',
-      content: `You are an AI-powered travel assistant specializing in itinerary creation and providing helpful travel information.
-      When asked to create an itinerary or plan a trip, generate a response structured with daily breakdowns.
-      For each day, suggest activities, sights, and perhaps food recommendations.
-      Use clear headings for days (e.g., "Day 1: Arrival and City Exploration") and markdown for formatting.
-      Keep responses engaging and easy to read.
-      If asked about booking flights, hotels, or other real-time services, always suggest looking up real-time availability on dedicated booking websites (e.g., Expedia, Booking.com, Google Flights).
-      You have access to a tool to get the current time in specific cities. When the user asks about the current time in a city, you MUST use the 'getTimeForCity' tool. After successfully using the tool and receiving the result, you MUST then provide a clear, conversational answer to the user in natural language, directly stating the time you retrieved. Do NOT just output the tool result.`,
-    };
-
-    console.log('API Route: Calling streamText with tools and onError...');
-    const result = await streamText({
-      model: model,
-      messages: [systemMessage, ...messages],
-      temperature: 0.0,
-      maxTokens: 1000,
-      tools: { getTimeForCity: getTimeForCityTool },
-      // Removed tool_choice: 'required' to allow the model to decide and then converse
-      maxSteps: 5, // Allows the model to take multiple turns (e.g., tool call, then text generation)
-      onError: (error) => {
-        console.error('AI SDK streamText Error (from onError callback):', JSON.stringify(error, null, 2));
-      },
-    });
-
-    // --- NEW DEBUGGING LOGGING ---
-    console.log('API Route: Starting stream iteration for debugging...');
-    let fullGeneratedText = '';
-    for await (const delta of result.fullStream) {
-      if (delta.type === 'text-delta') {
-        fullGeneratedText += delta.textDelta;
-        console.log(`[Stream Delta] Type: text-delta, Content: "${delta.textDelta}"`);
-      } else if (delta.type === 'tool-call') {
-        console.log(`[Stream Delta] Type: tool-call, Name: ${delta.toolName}, Args: ${JSON.stringify(delta.args)}`);
-      } else if (delta.type === 'tool-result') {
-        console.log(`[Stream Delta] Type: tool-result, Name: ${delta.toolName}, Result: ${JSON.stringify(delta.result)}`);
-      } else {
-        console.log(`[Stream Delta] Other Type: ${delta.type}`);
-      }
-    }
-    console.log('API Route: Stream iteration completed.');
-    console.log('API Route: Full generated text from stream:', fullGeneratedText);
-    // --- END NEW DEBUGGING LOGGING ---
-
-    console.log('API Route: streamText call completed. Returning response.');
-    return result.toDataStreamResponse();
-  } catch (error) {
-    console.error('API Route: Caught an error during request processing (from catch block):', error);
-    // Provide more detail in development mode
-    if (process.env.NODE_ENV === 'development') {
-      return new Response(`Error processing request: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
-    }
-    return new Response('Internal Server Error', { status: 500 });
-  }
-}
-
-
-
-// app/api/chat/route.ts
-import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
-import * as z from 'zod';
-
-export const dynamic = 'force-dynamic';
-
-async function _getLocalTimeForCity(city: string): Promise<string> {
-  // Use TIMEZONE_API_KEY as per your .env file
-  const googleMapsApiKey = process.env.TIMEZONE_API_KEY;
-
-  if (!googleMapsApiKey) {
-    return "Error: Time Zone API key not configured on the server. Cannot get city time.";
-  }
-
-  try {
-    // Step 1: Use Google Geocoding API to get Lat/Lon for the city
-    console.log(`[Tool] Calling Google Geocoding API for city: ${city}`);
-    const geocodingResponse = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city)}&key=${googleMapsApiKey}`
-    );
-
-    if (!geocodingResponse.ok) {
-      console.error(`Geocoding API error for ${city}: ${geocodingResponse.status} ${geocodingResponse.statusText}`);
-      const errorBody = await geocodingResponse.text();
-      return `Sorry, there was an issue finding "${city}" on the map. (Details: ${errorBody.substring(0, 100)})`;
-    }
-
-    const geocodingData = await geocodingResponse.json();
-
-    if (geocodingData.status !== 'OK' || geocodingData.results.length === 0) {
-      return `Sorry, I couldn't find a precise location for "${city}". Please try a more specific or common city name. Status: ${geocodingData.status}`;
-    }
-
-    const { lat, lng } = geocodingData.results[0].geometry.location;
-    console.log(`[Tool] Geocoded ${city} to Lat: ${lat}, Lng: ${lng}`);
-
-    // Step 2: Use Google Time Zone API with Lat/Lon
-    console.log(`[Tool] Calling Google Time Zone API for Lat: ${lat}, Lng: ${lng}`);
-    const timestamp = Math.floor(Date.now() / 1000); // Current UTC timestamp in seconds
-    const timezoneResponse = await fetch(
-      `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${timestamp}&key=${googleMapsApiKey}`
-    );
-
-    if (!timezoneResponse.ok) {
-      console.error(`Time Zone API error for ${city}: ${timezoneResponse.status} ${timezoneResponse.statusText}`);
-      const errorBody = await timezoneResponse.text();
-      return `Sorry, there was an issue getting the time zone for "${city}". (Details: ${errorBody.substring(0, 100)})`;
-    }
-
-    const timezoneData = await timezoneResponse.json();
-
-    if (timezoneData.status !== 'OK') {
-      return `Sorry, I couldn't retrieve the time zone for "${city}". Status: ${timezoneData.status} - ${timezoneData.errorMessage || ''}`;
-    }
-
-    const timeZoneId = timezoneData.timeZoneId; // e.g., "America/New_York"
-    console.log(`[Tool] Time Zone ID for ${city}: ${timeZoneId}`);
-
-    // Step 3: Format the time using Intl.DateTimeFormat
-    const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      hour12: true,
-      timeZone: timeZoneId, // Use the retrieved timeZoneId
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    };
-    const localTime = new Intl.DateTimeFormat('en-US', options).format(now);
-    return `The current local time in ${city} is ${localTime}.`;
-
-  } catch (error) {
-    console.error(`Error in _getLocalTimeForCity for ${city}:`, error);
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      return `There was a network issue trying to connect to the time zone service. Please check your internet connection or try again later.`;
-    }
-    return `There was an unexpected error trying to get the time for ${city}.`;
-  }
-}
-
-const getTimeForCityTool = {
-  name: 'getTimeForCity',
-  description: 'Get the current local time for a specified global city. Use this when the user asks about the current time in a city.',
-  parameters: z.object({
-    city: z.string().describe('The name of the city, e.g., "Tokyo", "London", "New York".'),
-  }),
-  execute: async ({ city }: { city: string }) => {
-    console.log(`[Tool Call] getTimeForCity for city: ${city}`);
-    const time = await _getLocalTimeForCity(city);
-    console.log(`[Tool Output] ${time}`);
-    return time;
-  },
-};
-
-export async function POST(req: Request) {
-  try {
-    console.log('API Route: Request received.');
-    const { messages } = await req.json();
-    console.log('API Route: Messages parsed:', JSON.stringify(messages));
-
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      console.error('API Route: GOOGLE_GENERATIVE_AI_API_KEY not found.');
-      return new Response('Google API key not found. Please set GOOGLE_GENERATIVE_AI_API_KEY.', { status: 500 });
-    }
-    
-    // Check for TIMEZONE_API_KEY now
-    if (!process.env.TIMEZONE_API_KEY) {
-        console.error('API Route: TIMEZONE_API_KEY not found. Time zone tool will not function correctly.');
-    }
-
-    const model = google('models/gemini-1.5-flash');
-
-    const systemMessage = {
-      role: 'system',
-      content: `You are an AI-powered travel assistant specializing in itinerary creation and providing helpful travel information.
-      When asked to create an itinerary or plan a trip, generate a response structured with daily breakdowns.
-      For each day, suggest activities, sights, and perhaps food recommendations.
-      Use clear headings for days (e.g., "Day 1: Arrival and City Exploration") and markdown for formatting.
-      Keep responses engaging and easy to read.
-      If asked about booking flights, hotels, or other real-time services, always suggest looking up real-time availability on dedicated booking websites (e.g., Expedia, Booking.com, Google Flights).
-      You have access to a tool to get the current time in specific cities. When the user asks about the current time in a city, you MUST use the 'getTimeForCity' tool. After successfully using the tool and receiving the result, you MUST then provide a clear, conversational answer to the user in natural language, directly stating the time you retrieved.`,
-    };
-
-    console.log('API Route: Calling streamText with tools...');
-    const result = await streamText({
-      model: model,
-      messages: [systemMessage, ...messages],
-      temperature: 0.0,
-      maxTokens: 1000,
-      tools: { getTimeForCity: getTimeForCityTool },
-      maxSteps: 5,
-      onError: (error) => {
-        console.error('AI SDK streamText Error (from onError callback):', JSON.stringify(error, null, 2));
-      },
-    });
-
-    console.log('API Route: streamText call completed. Returning response.');
-    return result.toDataStreamResponse();
-  } catch (error) {
-    console.error('API Route: Caught an error during request processing (from catch block):', error);
-    if (process.env.NODE_ENV === 'development') {
-      return new Response(`Error processing request: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
-    }
-    return new Response('Internal Server Error', { status: 500 });
-  }
-}
-
-
-
-// app/api/chat/route.ts
-import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
-import * as z from 'zod';
-
-export const dynamic = 'force-dynamic';
-
-// Renamed from _getLocalTimeForCity for clarity, and adapted for direct use.
-// This function now precisely matches the logic you provided.
-async function getTimeForCity(cityName: string): Promise<string> { // Changed return type to string for direct use in tool output
-  const apiKey = process.env.TIMEZONE_API_KEY; // Using your preferred env var name
-
-  if (!apiKey) {
-    console.error("getTimeForCity: TIMEZONE_API_KEY not configured.");
-    return "Error: Time Zone API key not configured on the server. Cannot get city time.";
-  }
-
-  try {
-    // 1. Geocoding
-    const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cityName)}&key=${apiKey}`;
-    console.log(`[Tool] Calling Google Geocoding API for city: ${cityName}`);
-
-    const geocodingResponse = await fetch(geocodingUrl);
-    const geocodingData = await geocodingResponse.json();
-
-    if (!geocodingResponse.ok || geocodingData.status !== 'OK') {
-      const errorDetail = geocodingData.error_message || geocodingData.status;
-      console.error(`Geocoding failed for ${cityName}: ${errorDetail}`);
-      if (geocodingData.status === 'REQUEST_DENIED') {
-        return `Sorry, I couldn't access location services for "${cityName}". There might be an issue with the API key or its permissions.`;
-      }
-      return `Sorry, I couldn't find a precise location for "${cityName}". Please try a more specific or common city name.`;
-    }
-
-    if (geocodingData.results.length === 0) {
-        return `Sorry, I couldn't find a location for "${cityName}". It might be too obscure or spelled incorrectly.`;
-    }
-
-    const {
-      lat,
-      lng
-    } = geocodingData.results[0].geometry.location;
-    console.log(`[Tool] Geocoded ${cityName} to Lat: ${lat}, Lng: ${lng}`);
-
-    // 2. Time Zone Identification
-    const timestamp = Math.floor(Date.now() / 1000); // Current time in Unix timestamp
-    const timezoneUrl = `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${timestamp}&key=${apiKey}`;
-    console.log(`[Tool] Calling Google Time Zone API for Lat: ${lat}, Lng: ${lng}`);
-
-    const timezoneResponse = await fetch(timezoneUrl);
-    const timezoneData = await timezoneResponse.json();
-
-    if (!timezoneResponse.ok || timezoneData.status !== 'OK') {
-        const errorDetail = timezoneData.error_message || timezoneData.status;
-        console.error(`Time Zone API failed for ${cityName}: ${errorDetail}`);
-        if (timezoneData.status === 'REQUEST_DENIED') {
-            return `Sorry, I couldn't access time zone services for "${cityName}". There might be an issue with the API key or its permissions.`;
-        }
-        return `Sorry, I couldn't determine the time zone for "${cityName}".`;
-    }
-
-    const timeZoneId = timezoneData.timeZoneId;
-    console.log(`[Tool] Time Zone ID for ${cityName}: ${timeZoneId}`);
-
-    // 3. Local Time Calculation
-    const options: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true, // Example: 10:30:00 PM
-      timeZone: timeZoneId,
-      weekday: 'short', // Mon, Tue, etc.
-      month: 'short',   // Jan, Feb, etc.
-      day: 'numeric',   // 1, 2, 3, etc.
-    };
-    const now = new Date(); // Use current date for formatting
-    const localTime = new Intl.DateTimeFormat('en-US', options).format(now);
-
-    return `The current local time in ${cityName} is ${localTime}.`;
-
-  } catch (error) {
-    console.error(`Error in getTimeForCity for ${cityName}:`, error);
-    // Provide a more generic error if it's an unexpected fetch/network issue
-    return `There was an unexpected error trying to get the time for ${cityName}.`;
-  }
-}
-
-// 2. Define the 'tool' object for the AI SDK with the execute function
-const getTimeForCityTool = {
-  name: 'getTimeForCity',
-  description: 'Get the current local time for a specified global city. Use this when the user asks about the current time in a city.',
-  parameters: z.object({
-    city: z.string().describe('The name of the city, e.g., "Tokyo", "London", "New York".'),
-  }),
-  execute: async ({ city }: { city: string }) => {
-    console.log(`[Tool Call] getTimeForCity for city: ${city}`);
-    const time = await getTimeForCity(city); // Call your new robust function
-    console.log(`[Tool Output] ${time}`);
-    return time;
-  },
-};
-
-export async function POST(req: Request) {
-  try {
-    console.log('API Route: Request received.');
-    const { messages } = await req.json();
-    console.log('API Route: Messages parsed:', JSON.stringify(messages));
-
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      console.error('API Route: GOOGLE_GENERATIVE_AI_API_KEY not found.');
-      return new Response('Google API key not found. Please set GOOGLE_GENERATIVE_AI_API_KEY.', { status: 500 });
-    }
-    
-    if (!process.env.TIMEZONE_API_KEY) { // Check for your Maps/Time Zone API key
-        console.error('API Route: TIMEZONE_API_KEY not found. Time zone tool will not function correctly.');
-        // Optionally, return an error here if the tool is critical:
-        // return new Response('Time Zone API key not found. Please set TIMEZONE_API_KEY.', { status: 500 });
-    }
-
-    const model = google('models/gemini-1.5-flash');
-
-    const systemMessage = {
-      role: 'system',
-      content: `You are an AI-powered travel assistant specializing in itinerary creation and providing helpful travel information.
-      When asked to create an itinerary or plan a trip, generate a response structured with daily breakdowns.
-      For each day, suggest activities, sights, and perhaps food recommendations.
-      Use clear headings for days (e.g., "Day 1: Arrival and City Exploration") and markdown for formatting.
-      Keep responses engaging and easy to read.
-      If asked about booking flights, hotels, or other real-time services, always suggest looking up real-time availability on dedicated booking websites (e.g., Expedia, Booking.com, Google Flights).
-      You have access to a tool to get the current time in specific cities. When the user asks about the current time in a city, you MUST use the 'getTimeForCity' tool. After successfully using the tool and receiving the result, you MUST then provide a clear, conversational answer to the user in natural language, directly stating the time you retrieved.`,
-    };
-
-    console.log('API Route: Calling streamText with tools...');
-    const result = await streamText({
-      model: model,
-      messages: [systemMessage, ...messages],
-      temperature: 0.0,
-      maxTokens: 1000,
-      tools: { getTimeForCity: getTimeForCityTool },
-      maxSteps: 5,
-      onError: (error) => {
-        console.error('AI SDK streamText Error (from onError callback):', JSON.stringify(error, null, 2));
-      },
-    });
-
-    console.log('API Route: streamText call completed. Returning response.');
-    return result.toDataStreamResponse();
-  } catch (error) {
-    console.error('API Route: Caught an error during request processing (from catch block):', error);
-    if (process.env.NODE_ENV === 'development') {
-      return new Response(`Error processing request: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
-    }
-    return new Response('Internal Server Error', { status: 500 });
-  }
-}
-
-
-
-
-*/
-// app/api/chat/route.ts
 import { streamText } from 'ai';
 import { google } from '@ai-sdk/google';
 import * as z from 'zod';
@@ -643,6 +5,77 @@ import * as z from 'zod';
 export const dynamic = 'force-dynamic';
 
 // --- Utility Functions ---
+
+/**
+ * Maps common language names to their DeepL compatible language codes.
+ * This can be expanded as needed. DeepL generally uses ISO 639-1 codes.
+ * Note: DeepL often uses broader categories for some languages (e.g., 'zh' for Chinese).
+ */
+const LANGUAGE_CODES_DEEPL: { [key: string]: string } = {
+    'english': 'en',
+    'spanish': 'es',
+    'french': 'fr',
+    'german': 'de',
+    'italian': 'it',
+    'portuguese': 'pt', // Portugal/Brazil distinctions might be like PT-PT, PT-BR
+    'russian': 'ru',
+    'japanese': 'ja',
+    'chinese': 'zh', // Simplified Chinese
+    'korean': 'ko',
+    'arabic': 'ar',
+    'hindi': 'hi',
+    'dutch': 'nl',
+    'greek': 'el',
+    'turkish': 'tr',
+    'ukrainian': 'uk', // DeepL supports Ukrainian
+    'polish': 'pl',
+    'swedish': 'sv',
+    'norwegian': 'nb', // DeepL uses nb for Norwegian Bokmål generally
+    'danish': 'da',
+    'finnish': 'fi',
+    'indonesian': 'id',
+    'czech': 'cs',
+    'slovak': 'sk',
+    'bulgarian': 'bg',
+    'estonian': 'et',
+    'latvian': 'lv',
+    'lithuanian': 'lt',
+    'romanian': 'ro',
+    'slovenian': 'sl',
+    'hungarian': 'hu',
+    // Always check DeepL's official documentation for their exact supported codes.
+    // Example: https://www.deepl.com/docs-api/languages/
+};
+
+/**
+ * Helper map for common currency names to ISO 4217 codes
+ */
+const CURRENCY_CODES: { [key: string]: string } = {
+    "us dollar": "USD", "usd": "USD",
+    "euro": "EUR", "eur": "EUR",
+    "japanese yen": "JPY", "jpy": "JPY",
+    "british pound": "GBP", "gbp": "GBP",
+    "canadian dollar": "CAD", "cad": "CAD",
+    "australian dollar": "AUD", "aud": "AUD",
+    "swiss franc": "CHF", "chf": "CHF",
+    "chinese yuan": "CNY", "cny": "CNY",
+    "indian rupee": "INR", "inr": "INR",
+    "brazilian real": "BRL", "brl": "BRL",
+    "mexican peso": "MXN", "mxn": "MXN",
+    // Add more as needed based on common user queries
+    "singapore dollar": "SGD", "sgd": "SGD",
+    "hong kong dollar": "HKD", "hkd": "HKD",
+    "new zealand dollar": "NZD", "nzd": "NZD",
+    "south african rand": "ZAR", "zar": "ZAR",
+    "swedish krona": "SEK", "sek": "SEK",
+    "norwegian krone": "NOK", "nok": "NOK",
+    "danish krone": "DKK", "dkk": "DKK",
+    "polish zloty": "PLN", "pln": "PLN",
+    "turkish lira": "TRY", "try": "TRY",
+    "russian ruble": "RUB", "rub": "RUB",
+    "south korean won": "KRW", "krw": "KRW",
+    "indonesian rupiah": "IDR", "idr": "IDR",
+};
 
 /**
  * Gets the current local time for a specified city using Google Geocoding and Time Zone APIs.
@@ -770,7 +203,7 @@ async function getWeatherForCity(cityName: string): Promise<string> {
             try {
                 const errorJson = JSON.parse(errorBody);
                 return `Sorry, there was an issue getting current weather for "${cityName}". (Details: ${errorJson.message || weatherResponse.statusText})`;
-            } catch {
+            } catch{
                 return `Sorry, there was an issue getting current weather for "${cityName}". (Status: ${weatherResponse.status} ${weatherResponse.statusText})`;
             }
         }
@@ -845,7 +278,7 @@ async function getWeatherForecastForCity(cityName: string): Promise<string> {
             try {
                 const errorJson = JSON.parse(errorBody);
                 return `Sorry, there was an issue getting the weather forecast for "${cityName}". (Details: ${errorJson.message || forecastResponse.statusText})`;
-            } catch {
+            } catch{
                 return `Sorry, there was an issue getting the weather forecast for "${cityName}". (Status: ${forecastResponse.status} ${forecastResponse.statusText})`;
             }
         }
@@ -1208,11 +641,7 @@ async function getTravelDirections(
 
         resultString += `Steps:\n`;
         // Limit steps to first 5-7 for brevity in AI response
-        interface DirectionStep {
-            html_instructions: string;
-            distance: { text: string };
-        }
-        leg.steps.slice(0, 7).forEach((step: DirectionStep, index: number) => {
+        leg.steps.slice(0, 7).forEach((step: { html_instructions: string; distance: { text: string } }, index: number) => {
             // Remove HTML tags from instructions (e.g., <b>)
             const instruction = step.html_instructions.replace(/<[^>]*>/g, '');
             resultString += `${index + 1}. ${instruction} (${step.distance.text})\n`;
@@ -1232,6 +661,341 @@ async function getTravelDirections(
     }
 }
 
+/**
+ * Translates a given text phrase from one language to another using DeepL API.
+ * @param phrase The text to translate.
+ * @param targetLanguage The language to translate into (e.g., "Russian", "ru").
+ * @param sourceLanguage Optional: The original language of the phrase (e.g., "English", "en").
+ * @returns The translated phrase, or an error message.
+ */
+async function translatePhrase(phrase: string, targetLanguage: string, sourceLanguage?: string): Promise<string> {
+    const apiKey = process.env.DEEPL_API_KEY;
+
+    if (!apiKey) {
+        console.error("translatePhrase: DEEPL_API_KEY not configured.");
+        return "Error: DeepL API key not configured. Cannot translate.";
+    }
+
+    // Determine DeepL API base URL based on key type (free vs. pro)
+    // IMPORTANT: Based on your key starting with '1211' (common for DeepL Free API Keys that don't start with 'd2v')
+    // We are explicitly pointing to the free endpoint. If you upgrade to a Pro key, you'll need to change this.
+    const apiUrl = apiKey.startsWith('1211') // Use your key's prefix here, or just 'https://api-free.deepl.com/v2/translate' directly
+        ? 'https://api-free.deepl.com/v2/translate'
+        : 'https://api.deepl.com/v2/translate'; // Fallback for other non-d2v/1211 prefixes, likely Pro.
+
+    // If you are certain your key is a FREE API Key, you can directly specify the free endpoint:
+    // const apiUrl = 'https://api-free.deepl.com/v2/translate';
+
+
+    // Convert targetLanguage name to DeepL compatible code
+    const targetLangCode = LANGUAGE_CODES_DEEPL[targetLanguage.toLowerCase()] || targetLanguage.toUpperCase(); // DeepL often expects upper case for target
+    // Convert sourceLanguage name to DeepL compatible code if provided
+    const sourceLangCode = sourceLanguage ? (LANGUAGE_CODES_DEEPL[sourceLanguage.toLowerCase()] || sourceLanguage.toUpperCase()) : undefined;
+
+    try {
+        console.log(`[Tool] Calling DeepL API for phrase: "${phrase}" to ${targetLangCode} (from ${sourceLangCode || 'auto-detect'})`);
+
+        const body: { text: string[]; target_lang: string; source_lang?: string; } = {
+            text: [phrase],
+            target_lang: targetLangCode,
+        };
+        if (sourceLangCode) {
+            body.source_lang = sourceLangCode;
+        }
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `DeepL-Auth-Key ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            const errorDetail = data.message || response.statusText;
+            console.error(`DeepL API failed for "${phrase}" to ${targetLanguage}: ${errorDetail}`);
+            if (response.status === 403) { // Forbidden - often API key issues
+                 return `Sorry, there was an issue with the DeepL API key or its permissions. (Error: Authentication failed)`;
+            }
+            if (response.status === 400 && data.message && data.message.includes('target_lang')) {
+                return `Sorry, "${targetLanguage}" might not be a supported target language for DeepL, or the code is incorrect.`;
+            }
+            if (response.status === 400 && data.message && data.message.includes('source_lang')) {
+                return `Sorry, "${sourceLanguage}" might not be a supported source language for DeepL, or the code is incorrect.`;
+            }
+            return `Sorry, I couldn't translate that phrase. (Details: ${errorDetail})`;
+        }
+
+        if (!data.translations || data.translations.length === 0) {
+            return `No translation found for "${phrase}".`;
+        }
+
+        const translatedText = data.translations[0].text;
+        const detectedSourceLanguage = data.translations[0].detected_source_language;
+
+        let resultString = `"${phrase}" translated into ${targetLanguage} is: "${translatedText}"`;
+        if (!sourceLanguage && detectedSourceLanguage) {
+            // Find human-readable name for detected language if possible
+            const detectedLangName = Object.keys(LANGUAGE_CODES_DEEPL).find(key => LANGUAGE_CODES_DEEPL[key].toUpperCase() === detectedSourceLanguage.toUpperCase());
+            if (detectedLangName) {
+                resultString += ` (Detected original language: ${detectedLangName.charAt(0).toUpperCase() + detectedLangName.slice(1)})`;
+            } else {
+                resultString += ` (Detected original language code: ${detectedSourceLanguage})`;
+            }
+        }
+        return resultString;
+
+    } catch (error) {
+        console.error(`Error in translatePhrase for "${phrase}" to ${targetLanguage}:`, error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            return `There was a network issue trying to connect to the DeepL translation service. Please check your internet connection or try again later.`;
+        }
+        return `There was an unexpected error trying to translate the phrase.`;
+    }
+}
+
+async function getCurrencyExchangeRate(fromCurrency: string, toCurrency: string, amount?: number): Promise<string> {
+    const apiKey = process.env.EXCHANGERATE_API_KEY;
+
+    if (!apiKey) {
+        console.error("getCurrencyExchangeRate: EXCHANGERATE_API_KEY not configured.");
+        return "Error: Currency exchange API key not configured. Cannot get exchange rate.";
+    }
+
+    // Normalize currency inputs to ISO codes
+    const normalizedFromCurrency = CURRENCY_CODES[fromCurrency.toLowerCase()] || fromCurrency.toUpperCase();
+    const normalizedToCurrency = CURRENCY_CODES[toCurrency.toLowerCase()] || toCurrency.toUpperCase();
+
+    try {
+        const response = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/${normalizedFromCurrency}`);
+        const data = await response.json();
+
+        if (data.result === 'error') {
+            if (data['error-type'] === 'unsupported-code') {
+                return `Error: One of the currency codes (${fromCurrency} or ${toCurrency}) is not supported. Please check for typos or use standard ISO currency codes (e.g., USD, EUR).`;
+            }
+            console.error(`ExchangeRate-API Error: ${data['error-type']}`);
+            return `Sorry, I encountered an error fetching currency data: ${data['error-type']}.`;
+        }
+
+        if (!data.conversion_rates || typeof data.conversion_rates[normalizedToCurrency] === 'undefined') {
+            return `Sorry, I couldn't find an exchange rate for ${fromCurrency} to ${toCurrency}. Please ensure both are valid currencies.`;
+        }
+
+        const rate = data.conversion_rates[normalizedToCurrency];
+        let result = `The current exchange rate from 1 ${normalizedFromCurrency} to ${normalizedToCurrency} is ${rate.toFixed(4)}.`;
+
+        if (amount) {
+            const convertedAmount = amount * rate;
+            result += ` So, ${amount} ${normalizedFromCurrency} is approximately ${convertedAmount.toFixed(2)} ${normalizedToCurrency}.`;
+        }
+
+        return result;
+
+    } catch (error) {
+        console.error("Error fetching currency exchange rate:", error);
+        return "Sorry, I couldn't fetch the currency exchange rate due to a network or API issue. Please try again later.";
+    }
+}
+
+/**
+ * Searches for travel advisories, entry requirements, and visa information for a specific destination.
+ * Uses SerpApi's Google Search engine.
+ * @param destinationCountry The country to search information for (e.g., "France", "Japan").
+ * @param travelerNationality Optional: The nationality of the traveler for visa queries (e.g., "US citizen", "Australian").
+ * @param queryType The specific type of information requested ('advisory', 'visa', 'general').
+ * @returns A string summarizing the found information and a crucial disclaimer, or an error message.
+ */
+async function getTravelAdvisoriesAndVisaInfo(destinationCountry: string, travelerNationality?: string, queryType: 'advisory' | 'visa' | 'general' = 'general'): Promise<string> {
+    const serpApiKey = process.env.SERPAPI_API_KEY;
+
+    if (!serpApiKey) {
+        console.error("getTravelAdvisoriesAndVisaInfo: SERPAPI_API_KEY not configured.");
+        return "Error: SerpApi API key not configured. Cannot search for travel advisories or visa information.";
+    }
+
+    try {
+        const baseUrl = 'https://serpapi.com/search';
+        const params = new URLSearchParams();
+        params.append('api_key', serpApiKey);
+        params.append('engine', 'google'); // Use general Google Search
+
+        let searchQuery: string;
+        if (queryType === 'advisory') {
+            searchQuery = `${travelerNationality ? travelerNationality + ' ' : ''}travel advisory for ${destinationCountry}`;
+        } else if (queryType === 'visa') {
+            searchQuery = `${travelerNationality ? travelerNationality + ' ' : ''}visa requirements for ${destinationCountry}`;
+        } else {
+            searchQuery = `travel information ${destinationCountry}`; // General query
+        }
+
+        params.append('q', searchQuery);
+        params.append('num', '3'); // Get top 3 organic results for brevity
+
+        const url = `${baseUrl}?${params.toString()}`;
+        console.log(`[Tool] Calling SerpApi Google Search for travel info: "${searchQuery}"`);
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok) {
+            const errorDetail = data.error?.message || response.statusText;
+            console.error(`SerpApi Google Search failed for travel advisories/visa: ${errorDetail}`);
+            return `Sorry, I couldn't perform a search for travel advisories or visa information. (Details: ${errorDetail})`;
+        }
+
+        if (!data.organic_results || data.organic_results.length === 0) {
+            return `I couldn't find specific information for "${searchQuery}". Please try refining your query or check official government websites directly.`;
+        }
+
+        let resultString = `Here's what I found regarding travel advisories and visa information for ${destinationCountry}:\n\n`;
+
+        interface OrganicResult {
+            title?: string;
+            snippet?: string;
+            link?: string;
+        }
+
+        data.organic_results.slice(0, 3).forEach((result: OrganicResult, index: number) => {
+            resultString += `${index + 1}. **${result.title}**\n`;
+            if (result.snippet) {
+                resultString += `   Snippet: ${result.snippet}\n`;
+            }
+            if (result.link) {
+                resultString += `   Link: ${result.link}\n`;
+            }
+            resultString += '\n';
+        });
+
+        // IMPORTANT: Add the crucial disclaimer about checking official sources
+        resultString += `**IMPORTANT:** Travel advisories and visa requirements can change frequently and depend on your nationality. For the most accurate and up-to-date information, you MUST always check the official government website of your nationality's foreign affairs department (e.g., U.S. Department of State, Global Affairs Canada, UK Foreign, Commonwealth & Development Office) and the embassy or consulate of the destination country.`;
+
+        return resultString;
+
+    } catch (error) {
+        console.error(`Error in getTravelAdvisoriesAndVisaInfo for "${destinationCountry}":`, error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            return `There was a network issue trying to connect to the search service. Please check your internet connection or try again later.`;
+        }
+        return `Sorry, there was an unexpected error trying to fetch travel advisories or visa information.`;
+    }
+}
+
+async function findRestaurants(
+    location: string,
+    cuisineType?: string,
+    priceRange?: '$' | '$$' | '$$$' | '$$$$',
+    minRating?: number,
+    openNow?: boolean
+): Promise<string> {
+    const googlePlacesApiKey = process.env.TIMEZONE_API_KEY;
+
+    if (!googlePlacesApiKey) {
+        console.error("findRestaurants: GOOGLE_PLACES_API_KEY not configured.");
+        return "Error: Google Places API key not configured. Cannot search for restaurants.";
+    }
+
+    try {
+        const baseUrl = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
+        const params = new URLSearchParams();
+
+        params.append('key', googlePlacesApiKey);
+        params.append('query', `${cuisineType || ''} restaurant in ${location}`); // Combine cuisine and location
+        params.append('type', 'restaurant'); // Ensure we're searching for restaurants
+
+        if (priceRange) {
+            // Google Places API uses price_level (0-4), we need to map our $ to this
+            const priceMap = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 };
+            const mappedPriceLevel = priceMap[priceRange as keyof typeof priceMap];
+            if (mappedPriceLevel) {
+                params.append('maxprice', mappedPriceLevel.toString()); // Max price level
+                // For min price, if you wanted to implement a range:
+                // params.append('minprice', (mappedPriceLevel - 1).toString());
+            }
+        }
+
+        if (minRating) {
+            // Google Places API doesn't directly support min_rating in text search,
+            // but we can filter results after fetching if needed, or rely on sorting.
+            // For now, we'll note it but not include in API call directly.
+            console.warn("Google Places API textsearch does not directly support 'minRating' as a query parameter. Filtering will be done manually or rely on sorting.");
+        }
+
+        if (openNow) {
+            params.append('opennow', 'true');
+        }
+
+        const url = `${baseUrl}?${params.toString()}`;
+        console.log(`[Tool] Calling Google Places API for: ${url}`);
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok || data.status !== 'OK') {
+            const errorDetail = data.error_message || data.status || response.statusText;
+            console.error(`Google Places API failed for ${location}: ${errorDetail}`);
+            return `Sorry, I couldn't find restaurant information for ${location}. (Details: ${errorDetail})`;
+        }
+
+        if (!data.results || data.results.length === 0) {
+            return `I couldn't find any restaurants matching your criteria in ${location}.`;
+        }
+
+        let resultString = `Here are some restaurants in ${location}`;
+        if (cuisineType) resultString += ` for ${cuisineType} cuisine`;
+        resultString += `:\n\n`;
+
+        // Define a type for restaurant results from Google Places API
+        interface RestaurantResult {
+            name: string;
+            formatted_address: string;
+            rating?: number;
+            user_ratings_total?: number;
+            price_level?: number;
+            opening_hours?: { open_now?: boolean };
+            plus_code?: { compound_code?: string };
+            place_id?: string;
+        }
+
+        // Filter by minRating manually as it's not a direct API parameter for textsearch
+        const filteredResults = minRating
+            ? (data.results as RestaurantResult[]).filter((r) => r.rating !== undefined && r.rating >= minRating)
+            : (data.results as RestaurantResult[]);
+
+        filteredResults.slice(0, 3).forEach((place: RestaurantResult, index: number) => { // Show top 3 results
+            resultString += `${index + 1}. **${place.name}**\n`;
+            resultString += `   Address: ${place.formatted_address}\n`;
+            if (place.rating) resultString += `   Rating: ${place.rating}/5 (${place.user_ratings_total || 0} reviews)\n`;
+            if (place.price_level !== undefined) {
+                const priceMap = { 0: 'Free', 1: '$', 2: '$$', 3: '$$$', 4: '$$$$' };
+                resultString += `   Price Level: ${priceMap[place.price_level as keyof typeof priceMap] || 'N/A'}\n`;
+            }
+            if (place.opening_hours?.open_now !== undefined) {
+                resultString += `   Status: ${place.opening_hours.open_now ? 'Open Now' : 'Closed'}\n`;
+            }
+            if (place.plus_code?.compound_code) {
+                // Example of a link to Google Maps
+                resultString += `   More Info: https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.place_id}\n\n`;
+            } else {
+                 resultString += `   More Info: https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + ' ' + place.formatted_address)}\n\n`;
+            }
+        });
+
+        resultString += `Remember to verify current opening hours and make reservations directly with the restaurant.`;
+        
+        return resultString;
+
+    } catch (error) {
+        console.error(`Error in findRestaurants for ${location}:`, error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            return `There was a network issue trying to connect to the restaurant search service. Please check your internet connection or try again later.`;
+        }
+        return `There was an unexpected error trying to find restaurants.`;
+    }
+}
 
 // --- Tool Definitions ---
 
@@ -1310,7 +1074,7 @@ const searchGlobalEventsTool = {
 
 const getTravelDirectionsTool = {
     name: 'getTravelDirections',
-    description: 'Get travel directions, estimated distance, and travel time between two specific locations, with an optional mode of transport (driving, walking, bicycling, transit). Use this when the user asks for "directions from X to Y", "how to get from A to B", "travel time between locations", or "public transport from/to specific places".',
+    description: 'Get travel directions, estimated distance, and travel time between two specific locations, with an optional mode of transport (driving, walking, bicycling, transit). Use this when the user asks for "directions from X to Y", "how to get from A to B", "travel time between locations", or "public transport from/to specific places". When providing directions, you MUST clearly state the estimated distance and travel time. Additionally, you MUST provide the initial few steps of the journey directly in a clear, numbered list format from the tool\'s output to give the user a preview of the route. After providing these summary directions, you should then advise the user to consult a dedicated mapping application for full, real-time navigation details.',
     parameters: z.object({
         origin: z.string().describe('The starting location (e.g., "Eiffel Tower", "Heathrow Airport", "My hotel"). This should be as specific as possible.'),
         destination: z.string().describe('The ending location (e.g., "Louvre Museum", "Central London", "a restaurant"). This should be as specific as possible.'),
@@ -1326,6 +1090,75 @@ const getTravelDirectionsTool = {
     },
 };
 
+const translatePhraseTool = {
+    name: 'translatePhrase',
+    description: 'Translates a given text phrase from one language to another. Use this when the user asks to "translate" a phrase or word from one language to another, or asks "how to say X in Y language".',
+    parameters: z.object({
+        phrase: z.string().describe('The text phrase to be translated.'),
+        targetLanguage: z.string().describe('The language to translate the phrase into (e.g., "Russian", "French", "Japanese", "Spanish", or language codes like "ru", "fr", "ja", "es").'),
+        sourceLanguage: z.string().optional().describe('Optional: The original language of the phrase if known (e.g., "English", "German", or language codes like "en", "de"). If not provided, the tool will attempt to detect it.'),
+    }),
+    execute: async ({ phrase, targetLanguage, sourceLanguage }: { phrase: string; targetLanguage: string; sourceLanguage?: string }) => {
+        console.log(`[Tool Call] translatePhrase: "${phrase}" to ${targetLanguage} (from ${sourceLanguage || 'auto-detect'})`);
+        const result = await translatePhrase(phrase, targetLanguage, sourceLanguage);
+        console.log(`[Tool Output] ${result}`);
+        return result;
+    },
+};
+
+const getCurrencyExchangeRateTool = {
+    name: 'getCurrencyExchangeRate',
+    description: 'Gets the current exchange rate between two specified currencies or converts a specified amount from one currency to another. Use ISO 4217 codes (e.g., USD, EUR, JPY) or common currency names (e.g., "US Dollar", "Euro").',
+    parameters: z.object({
+        fromCurrency: z.string().describe('The currency code or common name to convert from (e.g., "USD", "US Dollar", "Euro").'),
+        toCurrency: z.string().describe('The currency code or common name to convert to (e.g., "JPY", "Japanese Yen", "British Pound").'),
+        amount: z.number().optional().describe('Optional: The amount of the "from" currency to convert. If not provided, only the exchange rate is returned.'),
+    }),
+    execute: async ({ fromCurrency, toCurrency, amount }: { fromCurrency: string; toCurrency: string; amount?: number }) => {
+        console.log(`[Tool Call] getCurrencyExchangeRate: from ${fromCurrency} to ${toCurrency} amount ${amount || 'rate only'}`);
+        const result = await getCurrencyExchangeRate(fromCurrency, toCurrency, amount);
+        console.log(`[Tool Output] ${result}`);
+        return result;
+    },
+};
+
+const getTravelAdvisoriesAndVisaInfoTool = {
+    name: 'getTravelAdvisoriesAndVisaInfo',
+    description: 'Searches for travel advisories, safety warnings, entry requirements, and visa information for a specific destination country. If asking about visa requirements, it\'s crucial to specify the traveler\'s nationality (e.g., "US citizen", "Australian"). This tool emphasizes checking official government sources for the most up-to-date and accurate information.',
+    parameters: z.object({
+        destinationCountry: z.string().describe('The destination country for which to find advisories or visa information (e.g., "France", "Japan", "Brazil").'),
+        travelerNationality: z.string().optional().describe('Optional: The nationality or citizenship of the traveler for visa requirement queries (e.g., "US citizen", "Australian passport holder", "UK national"). Highly recommended for accuracy when asking about visas.'),
+        queryType: z.enum(['advisory', 'visa', 'general']).default('general').describe('The specific type of information requested: "advisory" for safety warnings, "visa" for entry requirements, or "general" for broad travel info. Defaults to "general".'),
+    }),
+    execute: async ({ destinationCountry, travelerNationality, queryType }: { destinationCountry: string; travelerNationality?: string; queryType?: 'advisory' | 'visa' | 'general' }) => {
+        console.log(`[Tool Call] getTravelAdvisoriesAndVisaInfo for ${destinationCountry}, nationality: ${travelerNationality || 'N/A'}, type: ${queryType}`);
+        const result = await getTravelAdvisoriesAndVisaInfo(destinationCountry, travelerNationality, queryType);
+        console.log(`[Tool Output] ${result}`);
+        return result;
+    },
+};
+
+const findRestaurantsTool = {
+    name: 'findRestaurants',
+    description: 'Searches for restaurants in a specified location with optional filters for cuisine, price range, minimum rating, and current operating status. Useful for finding dining options. Always advise users to verify current opening hours and make reservations directly.',
+    parameters: z.object({
+        location: z.string().describe('The city, neighborhood, or specific address to search for restaurants (e.g., "New York City", "Paris 7th Arrondissement", "near Eiffel Tower").'),
+        cuisineType: z.string().optional().describe('Optional: The type of cuisine (e.g., "Italian", "Mexican", "Sushi", "Vegan").'),
+        priceRange: z.enum(['$', '$$', '$$$', '$$$$']).optional().describe('Optional: The price range. "$" for inexpensive, "$$$$" for very expensive.'),
+        minRating: z.number().min(1).max(5).optional().describe('Optional: The minimum average user rating (1.0 to 5.0).'),
+        openNow: z.boolean().optional().describe('Optional: True if the restaurant should be currently open. Defaults to false (do not filter by open status).'),
+    }),
+    execute: async ({ location, cuisineType, priceRange, minRating, openNow }: { 
+        location: string; 
+        cuisineType?: string; 
+        priceRange?: '$' | '$$' | '$$$' | '$$$$'; 
+        minRating?: number; 
+        openNow?: boolean; 
+    }) => {
+        // This will be our mock execution function, defined next
+        return await findRestaurants(location, cuisineType, priceRange, minRating, openNow);
+    },
+};
 
 // --- Main POST Function for AI Stream ---
 
@@ -1336,19 +1169,32 @@ export async function POST(req: Request) {
         console.log('API Route: Messages parsed:', JSON.stringify(messages));
 
         // --- Critical API Key Checks ---
+        const missingApiKeys: string[] = [];
         if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-            console.error('API Route: GOOGLE_GENERATIVE_AI_API_KEY not found.');
-            return new Response('Google API key not found. Please set GOOGLE_GENERATIVE_AI_API_KEY.', { status: 500 });
+            missingApiKeys.push('Google Generative AI API Key');
         }
-        // Informative warnings for other API keys, but don't stop the whole service if they're missing
         if (!process.env.TIMEZONE_API_KEY) {
-            console.error('API Route: TIMEZONE_API_KEY not found. Time zone, Geocoding, Places, and Directions tools may not function correctly.');
+            missingApiKeys.push('Google Maps Platform API Key (for Time Zone, Geocoding, Places, Directions)');
         }
         if (!process.env.OPENWEATHERMAP_API_KEY) {
-            console.error('API Route: OPENWEATHERMAP_API_KEY not found. Weather tools will not function correctly.');
+            missingApiKeys.push('OpenWeatherMap API Key');
         }
         if (!process.env.SERPAPI_API_KEY) {
-            console.error('API Route: SERPAPI_API_KEY not found. Global event search tool (Google Events) will not function correctly.');
+            missingApiKeys.push('SerpApi Key');
+        }
+        if (!process.env.DEEPL_API_KEY) {
+            missingApiKeys.push('DeepL API Key');
+        }
+        if (!process.env.EXCHANGERATE_API_KEY) { // <-- ADDED FOR CURRENCY
+            missingApiKeys.push('ExchangeRate-API Key'); // <-- ADDED FOR CURRENCY
+        }
+
+        if (missingApiKeys.length > 0) {
+            const errorMessage = `API Route: The following essential API keys are not configured: ${missingApiKeys.join(', ')}. Please check your .env.local file. Some tools may not function correctly.`;
+            console.error(errorMessage);
+            // In a real application, you might want to return an error response here or disable affected tools.
+            // For now, we'll let it proceed with warnings so other tools can still work if their keys are present.
+            // return new Response(errorMessage, { status: 500 });
         }
 
 
@@ -1370,16 +1216,37 @@ export async function POST(req: Request) {
             For each day, suggest activities, sights, and perhaps food recommendations.
             Use clear headings for days (e.g., "Day 1: Arrival and City Exploration") and markdown for formatting.
             Keep responses engaging and easy to read.
+            When asked to generate a packing list, first try to identify the destination and the dates or duration of the trip.
+          Then, proactively use the 'getWeatherForecastForCity' tool for the specified destination to gather weather information.
+          Based on the weather forecast, the trip duration, and general travel common sense, generate a comprehensive and categorized packing list.
+          Include categories like:
+          - **Clothing & Footwear** (e.g., shirts, pants, underwear, socks, shoes, outerwear based on weather)
+          - **Toiletries & Personal Care** (e.g., toothbrush, toothpaste, shampoo, sunscreen, medications)
+          - **Electronics & Accessories** (e.g., phone, charger, power bank, adapter)
+          - **Documents & Money** (e.g., passport, ID, tickets, credit cards, local currency)
+          - **Miscellaneous** (e.g., reusable water bottle, small backpack, umbrella, sleep mask, snacks)
+          Always remind the user that the list is a suggestion and should be customized to their personal needs and specific activities. If a specific activity is mentioned (e.g., "hiking," "beach trip"), include items relevant to that activity.
+          If specific dates aren't provided for the packing list, assume a general trip or ask for clarification if the weather is highly variable.
             When creating an itinerary, proactively use your available tools (like weather forecasts, event searches, and place searches) to gather relevant information for the destination and dates, and seamlessly integrate this real-time data into your daily recommendations.
             If asked about booking flights, hotels, or other real-time services, always suggest looking up real-time availability on dedicated booking websites (e.g., Expedia, Booking.com, Google Flights).
             If you are unable to find information using your tools for specific queries (e.g., for very specific real-time schedules like professional sports games, or if a general search yields no results), or if the information retrieved is incomplete (such as missing exact dates or specific times for events), please provide a user-friendly explanation and advise the user to check authoritative external sources relevant to their query (e.g., official event websites, league/team websites, local venue sites, broader event listing platforms like Ticketmaster/Live Nation, local tourism boards, or dedicated sports news platforms like ESPN/MLB.com).
+            When offering to find more information, make sure to phrase it in natural language. Crucially, you MUST NOT mention the names of your internal tools (like 'getWeatherForecastForCity' or 'searchGlobalEvents') or their technical parameters directly to the user.
+            When asked about travel advisories, safety warnings, entry requirements, or visa information for a destination:
+          - You MUST use the 'getTravelAdvisoriesAndVisaInfo' tool.
+          - If the user asks specifically about **visa requirements** and they have **NOT** specified their nationality (e.g., "Do I need a visa for France?"), you MUST first ask them to provide their nationality or citizenship to give an accurate response. For example, "To provide accurate visa information, could you please tell me your nationality?". Do NOT attempt to use the tool for visa queries without explicit nationality.
+          - Always include the strong disclaimer provided by the tool's output, emphasizing that they must check official government websites for the most current and accurate information, as rules can change frequently.
             You have access to tools to get current information:
             - 'getTimeForCity': Use this when the user asks about the current time in a city.
             - 'getWeatherForCity': Use this when the user asks about the current weather or temperature in a city.
             - 'getWeatherForecastForCity': Use this when the user asks for the "forecast", "weather for next week", or "weather outlook" for a city.
             - 'searchPlacesOfInterest': Use this when the user asks for attractions, points of interest, or specific types of places (like museums, parks, restaurants) in a city.
+            - 'findRestaurants': Use this when the user asks to find restaurants, dining options, or places to eat in a specific location, optionally filtered by cuisine, price, or if they are currently open. You MUST advise the user to verify current opening hours and make reservations directly with the restaurant, as you cannot make reservations.**
             - 'searchGlobalEvents': Find upcoming global events, concerts, festivals, sports, and other happenings using Google Events search. This is the primary tool for all event searches. It can be used for specific cities or broader queries, and works with date ranges like "today", "tomorrow", "this weekend", "next week", "this month", "next month".
-            - 'getTravelDirections': Use this when the user asks for "directions from X to Y", "how to get from A to B", "travel time between locations", or "public transport from/to specific places". **When providing directions, you MUST clearly state the estimated distance and travel time.** Additionally, **you MUST provide the initial few steps of the journey directly in a clear, numbered list format** from the tool's output to give the user a preview of the route. After providing these summary directions, **you should then** advise the user to consult a dedicated mapping application for full, real-time navigation details.
+            - 'getTravelDirections': When providing directions, you MUST clearly state the estimated distance and travel time. Additionally, you MUST provide the initial few steps of the journey directly in a clear, numbered list format from the tool\'s output to give the user a preview of the route. After providing these summary directions, you should then advise the user to consult a dedicated mapping application for full, real-time navigation details.
+            - 'translatePhrase': Use this when the user asks to "translate" a phrase or word from one language to another, or asks "how to say X in Y language".
+            - 'getCurrencyExchangeRate': Use this when the user asks about currency exchange rates or wants to convert an amount between two currencies.
+            - 'getTravelAdvisoriesAndVisaInfo': Use this when the user asks about travel warnings, advisories, entry requirements, or visa information for a country. Remember to ask for nationality if needed for visa queries.
+            - 'searchFlights': Use this when the user asks to find flights, search for flight prices, or ask about flight options between two locations for specific dates. **Crucially, you cannot book flights. Only provide flight search results and advise the user to visit external booking websites (like Google Flights, Expedia, Kayak) for actual booking and real-time availability.**
             After successfully using a tool and receiving the result, you MUST then provide a clear, conversational, and factually precise answer to the user in natural language, directly stating the information you retrieved. Do NOT just output the raw tool result.`;
 
         const systemMessage = {
@@ -1399,7 +1266,11 @@ export async function POST(req: Request) {
                 getWeatherForecastForCity: getWeatherForecastForCityTool,
                 searchPlacesOfInterest: searchPlacesOfInterestTool,
                 searchGlobalEvents: searchGlobalEventsTool,
-                getTravelDirections: getTravelDirectionsTool, // <-- NEW TOOL ADDED HERE
+                getTravelDirections: getTravelDirectionsTool,
+                translatePhrase: translatePhraseTool,
+                getCurrencyExchangeRate: getCurrencyExchangeRateTool, // <-- ADDED TOOL
+                getTravelAdvisoriesAndVisaInfo: getTravelAdvisoriesAndVisaInfoTool,
+                findRestaurants: findRestaurantsTool,
             },
             maxSteps: 5, // Limit the number of tool calls the model can make in a single turn
             onError: (error) => {
